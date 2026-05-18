@@ -1,0 +1,19 @@
+{
+  "name": "pnw-carbon-backend",
+  "version": "1.0.0",
+  "description": "Backend API for PNW Climate Week CO2 Emissions Calculator",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.3"
+  },
+  "devDependencies": {
+    "vercel": "^41.4.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

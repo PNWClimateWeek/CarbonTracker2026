@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PNW Climate Week — CO2 Emissions Calculator</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+  <style>
+    :root {
+      --bg:          #ffffff;
+      --bg-secondary:#f5f5f3;
+      --bg-tertiary: #efefec;
+      --text-primary:#1a1a18;
+      --text-secondary:#6b6b67;
+      --text-tertiary:#9e9e99;
+      --border:      rgba(0,0,0,0.12);
+      --border-mid:  rgba(0,0,0,0.20);
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --accent:      #1D9E75;
+      --accent-dark: #0F6E56;
+      --green-bg:    #EAF3DE; --green-text:  #3B6D11;
+      --amber-bg:    #FAEEDA; --amber-text:  #854F0B;
+      --red-bg:      #FCEBEB; --red-text:    #A32D2D;
+      --travel-bg:   #E1F5EE; --travel-bd:   #9FE1CB;
+      --energy-bg:   #EEEDFE; --energy-bd:   #AFA9EC;
+      --cat-bg:      #EAF3DE; --cat-bd:      #C0DD97;
+      --waste-bg:    #FAEEDA; --waste-bd:    #FAC775;
+      --mat-bg:      #FBEAF0; --mat-bd:      #F4C0D1;
+    }
+    @media (prefers-color-scheme:dark){
+      :root {
+        --bg:          #1e1e1c;
+        --bg-secondary:#2a2a28;
+        --bg-tertiary: #333330;
+        --text-primary:#f0f0ec;
+        --text-secondary:#a0a09c;
+        --text-tertiary:#6e6e6a;
+        --border:      rgba(255,255,255,0.10);
+        --border-mid:  rgba(255,255,255,0.18);
+        --green-bg:    #173404; --green-text:  #C0DD97;
+        --amber-bg:    #412402; --amber-text:  #FAC775;
+        --red-bg:      #501313; --red-text:    #F7C1C1;
+        --travel-bg:   #0d2a21; --travel-bd:   #1a5040;
+        --energy-bg:   #1e1d35; --energy-bd:   #3d3870;
+        --cat-bg:      #173404; --cat-bd:      #2d5a10;
+        --waste-bg:    #2a1a00; --waste-bd:    #5a3a00;
+        --mat-bg:      #2a0d1a; --mat-bd:      #5a1a35;
+      }
+    }
+
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      font-size:15px;line-height:1.6;
+      background:var(--bg);color:var(--text-primary);
+      padding:2rem 1rem 4rem;
+    }
+    .page{max-width:740px;margin:0 auto;}
+
+    /* Header */
+    header{margin-bottom:2rem;}
+    header h1{font-size:20px;font-weight:500;margin-bottom:.4rem;}
+    header p{font-size:13px;color:var(--text-secondary);line-height:1.5;}
+    header .byline{font-size:12px;color:var(--text-tertiary);margin-top:.4rem;}
+
+    /* Metrics */
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;}
+    .metric{background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.1rem;}
+    .metric-label{font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+    .metric-value{font-size:22px;font-weight:500;color:var(--text-primary);}
+    .metric-unit{font-size:11px;color:var(--text-tertiary);margin-top:2px;}
+
+    /* Cards */
+    .card{background:var(--bg);border:0.5px solid var(--border-mid);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1rem;}
+    .card.t-travel  {background:var(--travel-bg);border-color:var(--travel-bd);}
+    .card.t-energy  {background:var(--energy-bg);border-color:var(--energy-bd);}
+    .card.t-catering{background:var(--cat-bg);   border-color:var(--cat-bd);}
+    .card.t-waste   {background:var(--waste-bg);  border-color:var(--waste-bd);}
+    .card.t-materials{background:var(--mat-bg);   border-color:var(--mat-bd);}
+
+    .card-label{font-size:11px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.875rem;display:flex;align-items:center;justify-content:space-between;}
+
+    /* Form */
+    .fg{display:grid;gap:10px;margin-bottom:10px;}
+    .fg2{grid-template-columns:repeat(2,1fr);}
+    .fg3{grid-template-columns:repeat(3,1fr);}
+    .fg4{grid-template-columns:repeat(4,1fr);}
+    .fg6{grid-template-columns:repeat(6,1fr);}
+    .f{display:flex;flex-direction:column;gap:5px;}
+    label.fl{font-size:12px;color:var(--text-secondary);}
+
+    input[type=text],input[type=number],input[type=date],input[type=email],select,textarea{
+      width:100%;font-size:14px;font-family:inherit;
+      padding:8px 10px;border-radius:var(--radius-md);
+      border:0.5px solid var(--border-mid);
+      background:var(--bg-secondary);color:var(--text-primary);
+      outline:none;transition:border-color .15s;
+      appearance:none;-webkit-appearance:none;
+    }
+    input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+    textarea{resize:vertical;min-height:64px;line-height:1.5;}
+    .note{font-size:12px;color:var(--text-tertiary);margin-bottom:10px;line-height:1.5;}
+    .hidden{display:none;}
+
+    /* Travel badge */
+    .t-badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;transition:all .2s;}
+    .t-badge.ok  {background:var(--green-bg);color:var(--green-text);}
+    .t-badge.over{background:var(--red-bg);  color:var(--red-text);}
+    .t-badge.under{background:var(--bg-tertiary);color:var(--text-tertiary);}
+
+    /* Rating preview */
+    .rating-box{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:var(--radius-md);transition:background .3s;}
+
+    /* Divider */
+    hr{border:none;border-top:0.5px solid var(--border);margin:1rem 0;}
+
+    /* Button */
+    .btn-primary{
+      display:inline-flex;align-items:center;gap:8px;
+      background:var(--accent);color:#fff;border:none;
+      border-radius:var(--radius-md);padding:10px 22px;
+      font-size:14px;font-weight:600;font-family:inherit;
+      cursor:pointer;transition:background .15s,opacity .15s;
+    }
+    .btn-primary:hover{background:var(--accent-dark);}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+    .warn{font-size:12px;color:var(--red-text,#A32D2D);}
+
+    /* Event cards */
+    .ecard{
+      display:grid;grid-template-columns:4px 1fr auto;gap:12px;align-items:start;
+      border:0.5px solid var(--border);border-radius:var(--radius-md);
+      padding:12px 14px;margin-bottom:8px;background:var(--bg);
+      transition:box-shadow .15s;
+    }
+    .ecard:hover{box-shadow:0 2px 8px rgba(0,0,0,.07);}
+    .ecard-stripe{border-radius:2px;align-self:stretch;min-height:44px;}
+    .ecard-name{font-size:14px;font-weight:500;margin-bottom:3px;}
+    .ecard-meta{font-size:12px;color:var(--text-tertiary);margin-bottom:8px;}
+    .ecard-cats{display:flex;flex-wrap:wrap;gap:5px;}
+    .ecat{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg-secondary);color:var(--text-secondary);border:0.5px solid var(--border);}
+    .ecard-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
+    .etotal{font-size:17px;font-weight:500;}
+    .etotal-unit{font-size:11px;font-weight:400;color:var(--text-tertiary);}
+    .ebadge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:8px;white-space:nowrap;}
+    .del{background:none;border:0.5px solid var(--border);color:var(--text-tertiary);cursor:pointer;font-size:12px;padding:3px 8px;border-radius:var(--radius-md);transition:all .15s;}
+    .del:hover{border-color:var(--red-text,#A32D2D);color:var(--red-text,#A32D2D);}
+
+    /* Bar chart */
+    .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+    .bar-cat{font-size:12px;color:var(--text-secondary);width:105px;flex-shrink:0;}
+    .bar-track{flex:1;height:8px;background:var(--bg-secondary);border-radius:4px;overflow:hidden;}
+    .bar-fill{height:100%;border-radius:4px;transition:width .4s ease;}
+    .bar-val{font-size:12px;font-weight:500;width:100px;text-align:right;flex-shrink:0;}
+
+    .empty{font-size:13px;color:var(--text-tertiary);padding:.5rem 0;}
+    .meth{font-size:11px;color:var(--text-tertiary);line-height:1.6;}
+
+    /* Live stats */
+    .live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px;animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+    .live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem;}
+    .live-metric{background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:.875rem 1rem;}
+    .live-metric .metric-value{font-size:20px;}
+    .section-divider{border:none;border-top:0.5px solid var(--border);margin:1.75rem 0;}
+
+    /* Toast */
+    .toast{position:fixed;bottom:24px;right:24px;font-size:13px;font-weight:500;padding:10px 18px;border-radius:var(--radius-md);opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;z-index:9999;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.15);}
+    .toast.show{opacity:1;transform:translateY(0);}
+    .toast-ok{background:#065F46;color:#fff;}
+    .toast-err{background:#991B1B;color:#fff;}
+
+    footer{margin-top:2.5rem;font-size:12px;color:var(--text-tertiary);line-height:1.6;}
+
+    @media(max-width:600px){
+      .metrics{grid-template-columns:repeat(2,1fr);}
+      .fg4,.fg6{grid-template-columns:repeat(2,1fr);}
+      .fg3{grid-template-columns:repeat(2,1fr);}
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>PNW Climate Week — CO2 Emissions Calculator</h1>
+    <p>Measure the sustainability impact of your event. Log travel, energy, catering, waste, and materials to get a per-attendee CO2 rating and an automatic sustainability grade.</p>
+    <p class="byline">PNW Climate Week · Tacoma · Bend · Seattle · Portland · Vancouver BC · Bellingham</p>
+  </header>
+
+  <!-- Live stats from Neon -->
+  <div class="card" id="live-card">
+    <div class="card-label">
+      <span><span class="live-dot"></span>This week — all events</span>
+      <span id="live-status" style="font-size:11px;color:var(--text-tertiary);">Loading…</span>
+    </div>
+    <div class="live-grid" id="live-metrics">
+      <div class="live-metric"><div class="metric-label">Events</div><div class="metric-value" id="lm-events">—</div><div class="metric-unit">logged this week</div></div>
+      <div class="live-metric"><div class="metric-label">Attendees</div><div class="metric-value" id="lm-att">—</div><div class="metric-unit">total this week</div></div>
+      <div class="live-metric"><div class="metric-label">Avg per person</div><div class="metric-value" id="lm-avg">—</div><div class="metric-unit">kg CO2e / person</div></div>
+      <div class="live-metric"><div class="metric-label">Total CO2e</div><div class="metric-value" id="lm-total">—</div><div class="metric-unit">kg this week</div></div>
+    </div>
+    <div id="live-bars"><div class="empty">No data yet.</div></div>
+  </div>
+
+  <hr class="section-divider">
+  <p style="font-size:12px;color:var(--text-tertiary);margin-bottom:1.25rem;">Log your event below — it will be added to the totals above.</p>
+
+  <!-- Session metrics -->
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Total CO2e</div><div class="metric-value" id="m-total">0</div><div class="metric-unit">kg this session</div></div>
+    <div class="metric"><div class="metric-label">Events logged</div><div class="metric-value" id="m-events">0</div><div class="metric-unit">this session</div></div>
+    <div class="metric"><div class="metric-label">Total attendees</div><div class="metric-value" id="m-att">0</div><div class="metric-unit">across all events</div></div>
+    <div class="metric"><div class="metric-label">Per attendee avg</div><div class="metric-value" id="m-per">—</div><div class="metric-unit">kg CO2e / person</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Your details</div>
+    <div class="fg fg2">
+      <div class="f"><label class="fl">Name</label><input type="text" id="sub-name" placeholder="e.g. Alex Chen"></div>
+      <div class="f"><label class="fl">Email</label><input type="email" id="sub-email" placeholder="e.g. alex@example.com"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Event details</div>
+    <div class="fg fg4">
+      <div class="f"><label class="fl">Event name *</label><input type="text" id="ev-name" placeholder="e.g. Opening Ceremony"></div>
+      <div class="f"><label class="fl">Date</label><input type="date" id="ev-date"></div>
+      <div class="f"><label class="fl">City</label>
+        <select id="ev-city" onchange="autoSetEnergy()"><option>Tacoma</option><option>Bend</option><option>Seattle</option><option>Portland</option><option>Vancouver BC</option><option>Bellingham</option></select>
+      </div>
+      <div class="f"><label class="fl">Host / organizer</label><input type="text" id="ev-host" placeholder="Name or org"></div>
+    </div>
+    <div class="fg fg3">
+      <div class="f"><label class="fl">Total attendees *</label><input type="number" id="ev-att" min="0" placeholder="0"></div>
+      <div class="f"><label class="fl">Venue name</label><input type="text" id="ev-venue" placeholder="e.g. Creekside Community Centre"></div>
+      <div class="f"><label class="fl">Event type</label>
+        <select id="ev-type">
+          <option value="">Select...</option>
+          <option>Panel / talk</option><option>Workshop</option><option>Networking</option>
+          <option>Opening / closing ceremony</option><option>Field trip / tour</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card t-travel">
+    <div class="card-label">
+      <span>🚲 Travel</span>
+      <span class="t-badge under" id="t-badge">0 / 100%</span>
+    </div>
+    <div class="note">Estimate % of attendees by travel mode — should total 100.</div>
+    <div class="fg fg6">
+      <div class="f"><label class="fl">Walk / bike %</label><input type="number" id="t-walk" min="0" max="100" placeholder="0" oninput="checkTravel()"></div>
+      <div class="f"><label class="fl">Transit %</label><input type="number" id="t-transit" min="0" max="100" placeholder="0" oninput="checkTravel()"></div>
+      <div class="f"><label class="fl">EV / carpool %</label><input type="number" id="t-ev" min="0" max="100" placeholder="0" oninput="checkTravel()"></div>
+      <div class="f"><label class="fl">Gas car (solo) %</label><input type="number" id="t-gas" min="0" max="100" placeholder="0" oninput="checkTravel()"></div>
+      <div class="f"><label class="fl">Ride-hail %</label><input type="number" id="t-ride" min="0" max="100" placeholder="0" oninput="checkTravel()"></div>
+      <div class="f"><label class="fl">Flight %</label><input type="number" id="t-flight" min="0" max="100" placeholder="0" oninput="checkTravel()"></div>
+    </div>
+    <div class="fg fg2">
+      <div class="f"><label class="fl">Avg local trip distance (km one way)</label><input type="number" id="t-dist" value="8" min="0"></div>
+      <div class="f"><label class="fl">Avg flight distance (km one way)</label><input type="number" id="t-fdist" value="500" min="0"></div>
+    </div>
+  </div>
+
+  <div class="card t-energy">
+    <div class="card-label">⚡ Energy</div>
+    <div class="fg fg3">
+      <div class="f"><label class="fl">Event duration (hrs)</label><input type="number" id="en-hrs" min="0" step="0.5" placeholder="3"></div>
+      <div class="f"><label class="fl">Venue size (sq ft)</label><input type="number" id="en-sqft" min="0" placeholder="2000"></div>
+      <div class="f"><label class="fl">Energy source</label>
+        <select id="en-src">
+          <option value="0.288152">WA/OR grid (NWPP eGrid — EPA 2024)</option>
+          <option value="0.018">BC grid (BC Hydro / hydroelectric — 2026)</option>
+          <option value="0.2">Generator (diesel)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card t-catering">
+    <div class="card-label">🥗 Catering</div>
+    <div class="fg fg3">
+      <div class="f"><label class="fl">Catering provided?</label>
+        <select id="cat-yn" onchange="toggleCat()"><option value="no">No</option><option value="yes">Yes</option></select>
+      </div>
+      <div class="f hidden" id="cat-type-wrap"><label class="fl">Food type</label>
+        <select id="cat-type">
+          <option value="vegan">Fully plant-based</option>
+          <option value="mostly-plant">Mostly plant-based</option>
+          <option value="mixed">Mixed</option>
+          <option value="meatheavy">Mostly meat-heavy</option>
+        </select>
+      </div>
+      <div class="f hidden" id="cat-meals-wrap"><label class="fl">Portions served</label><input type="number" id="cat-meals" min="0" placeholder="0"></div>
+    </div>
+    <div class="hidden" id="cat-extra">
+      <div class="fg fg2">
+        <div class="f"><label class="fl">Sourcing</label>
+          <select id="cat-src">
+            <option value="0">Local / regional (BC)</option>
+            <option value="0.1">Mix of local + imported</option>
+            <option value="0.2">Primarily imported</option>
+          </select>
+        </div>
+        <div class="f"><label class="fl">Packaging</label>
+          <select id="cat-pack">
+            <option value="0">Reusable / compostable</option>
+            <option value="0.05">Mix</option>
+            <option value="0.15">Single-use plastic</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card t-waste">
+    <div class="card-label">🗑️ Waste</div>
+    <div class="note">Count bags at end of event. A full standard garbage bag ≈ 10–15 kg. Use the override fields if the venue provides a diversion report.</div>
+    <div class="fg fg3">
+      <div class="f"><label class="fl">Full landfill bags</label><input type="number" id="w-land" min="0" placeholder="0"></div>
+      <div class="f"><label class="fl">Full recycling bags</label><input type="number" id="w-rec" min="0" placeholder="0"></div>
+      <div class="f"><label class="fl">Full compost bags</label><input type="number" id="w-comp" min="0" placeholder="0"></div>
+    </div>
+    <div class="fg fg2">
+      <div class="f"><label class="fl">Total waste kg (venue override)</label><input type="number" id="w-kg" min="0" placeholder="leave blank to use bag count"></div>
+      <div class="f"><label class="fl">Diversion rate % (venue override)</label><input type="number" id="w-div" min="0" max="100" placeholder="leave blank to use bag count"></div>
+    </div>
+  </div>
+
+  <div class="card t-materials">
+    <div class="card-label">📦 Materials + swag</div>
+    <div class="fg fg3">
+      <div class="f"><label class="fl">Pages printed</label><input type="number" id="mat-pages" min="0" placeholder="0"></div>
+      <div class="f"><label class="fl">Swag / giveaways</label>
+        <select id="mat-swag">
+          <option value="0">None / digital only</option>
+          <option value="0.3">Sustainable items</option>
+          <option value="1.2">Mixed materials</option>
+          <option value="3">Standard promo items</option>
+        </select>
+      </div>
+      <div class="f"><label class="fl">Signage</label>
+        <select id="mat-sign">
+          <option value="0">Borrowed / reused banners</option>
+          <option value="0">Digital displays only</option>
+          <option value="0.5">New print (kept for reuse)</option>
+          <option value="2">New print (single use)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">🌱 Sustainability rating</div>
+    <div class="note">Calculated automatically from kg CO2e per attendee. Based on benchmarks for community events in transit-accessible cities.</div>
+    <div id="rating-preview" class="rating-box" style="background:var(--bg-secondary);">
+      <div style="font-size:13px;color:var(--text-tertiary);">Fill in the form to preview your rating.</div>
+    </div>
+    <div class="fg fg2" style="margin-top:14px;">
+      <div class="f"><label class="fl">What worked well?</label><textarea id="q-good" placeholder="e.g. Transit-accessible venue, plant-based catering..."></textarea></div>
+      <div class="f"><label class="fl">What to improve?</label><textarea id="q-improve" placeholder="e.g. Need compost bins, printed too many programs..."></textarea></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:2rem;">
+    <button class="btn-primary" id="add-btn" onclick="addEvent()">🌿 Log this event</button>
+    <span id="add-warn" class="warn" style="display:none;"></span>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Events this session</div>
+    <div id="event-list"><div class="empty">No events logged yet.</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Emissions by category</div>
+    <div id="bar-chart"><div class="empty">Add an event to see the breakdown.</div></div>
+    <hr>
+    <div class="meth">Emission factors: walk/bike 0 kg/km; transit 0.089; EV/carpool 0.05; gas car 0.21; ride-hail 0.24; flight 0.255 kg/km. Energy grid: WA/OR (NWPP eGrid) 0.288 kg CO2e/kWh (EPA eGRID 2024); BC 0.018 kg CO2e/kWh (Canada OBPS Table 5.3, 2026); diesel generator 0.2 kg CO2e/kWh. Venue load 2W/sq ft. Catering: plant-based 0.5 kg/meal, mostly-plant 1.2, mixed 2.5, meat-heavy 5.5. Waste: 0.5 kg CO2e/kg landfill; bag count uses 12 kg/bag. Pages: 0.005 kg/page. Rating per attendee: exemplary &lt;1 kg, good 1–3 kg, average 3–6 kg, below average 6–12 kg, needs work &gt;12 kg. Sources: GHG Protocol, DEFRA 2023, EPA eGRID, Environment and Climate Change Canada.</div>
+  </div>
+
+  <footer>PNW Climate Week · CO2 calculator for community event organizers in Tacoma, Bend, Seattle, Portland, Vancouver BC, and Bellingham.</footer>
+
+</div>
+<script>
+var API_BASE='https://pnw-carbon-backend.vercel.app';
+var events=[];
+
+async function loadLiveStats(){
+  try{
+    var res=await fetch(API_BASE+'/api/stats?since=2026-01-01');
+    var d=await res.json();
+    var s=d.summary,b=d.avg_category_breakdown;
+
+    document.getElementById('lm-events').textContent=s.event_count;
+    document.getElementById('lm-att').textContent=s.total_attendees.toLocaleString();
+    document.getElementById('lm-avg').textContent=s.avg_per_attendee_co2e_kg.toFixed(2);
+    document.getElementById('lm-total').textContent=parseFloat(s.total_co2e_kg).toFixed(1);
+
+    var cats=[
+      {key:'travel',   label:'🚲 Travel',   val:b.travel,   color:'#1D9E75'},
+      {key:'energy',   label:'⚡ Energy',   val:b.energy,   color:'#7F77DD'},
+      {key:'catering', label:'🥗 Catering', val:b.catering, color:'#639922'},
+      {key:'waste',    label:'🗑️ Waste',    val:b.waste,    color:'#BA7517'},
+      {key:'materials',label:'📦 Materials',val:b.materials,color:'#D4537E'}
+    ];
+    var maxVal=Math.max.apply(null,cats.map(function(c){return c.val;}));
+    if(maxVal===0)maxVal=1;
+    var grand=cats.reduce(function(s,c){return s+c.val;},0);
+    var html='';
+    cats.forEach(function(c){
+      var pct=Math.round(c.val/maxVal*100);
+      var share=grand>0?Math.round(c.val/grand*100):0;
+      html+='<div class="bar-row">'+
+        '<span class="bar-cat">'+c.label+'</span>'+
+        '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+c.color+';"></div></div>'+
+        '<span class="bar-val">'+parseFloat(c.val).toFixed(2)+' kg <span style="font-size:11px;font-weight:400;color:var(--text-tertiary);">('+share+'%)</span></span>'+
+      '</div>';
+    });
+    document.getElementById('live-bars').innerHTML=html||'<div class="empty">No data yet.</div>';
+
+    var now=new Date();
+    document.getElementById('live-status').textContent='Updated '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    document.getElementById('live-status').textContent='Could not load';
+  }
+}
+
+document.addEventListener('DOMContentLoaded',loadLiveStats);
+
+function v(id){return parseFloat(document.getElementById(id).value)||0;}
+function sv(id){return document.getElementById(id).value;}
+function gv(id){var el=document.getElementById(id);return el?el.value.trim():'';}
+
+function showToast(msg,type){
+  var t=document.createElement('div');
+  t.className='toast '+(type==='err'?'toast-err':'toast-ok');
+  t.textContent=msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){t.classList.add('show');});});
+  setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove();},250);},2600);
+}
+
+function checkTravel(){
+  var total=v('t-walk')+v('t-transit')+v('t-ev')+v('t-gas')+v('t-ride')+v('t-flight');
+  var b=document.getElementById('t-badge');
+  b.textContent=total+' / 100%';
+  b.className='t-badge '+(total===100?'ok':total>100?'over':'under');
+  updateRatingPreview();
+}
+
+function toggleCat(){
+  var on=sv('cat-yn')==='yes';
+  ['cat-type-wrap','cat-meals-wrap','cat-extra'].forEach(function(id){
+    document.getElementById(id).classList.toggle('hidden',!on);
+  });
+  updateRatingPreview();
+}
+
+function autoSetEnergy(){
+  var city=sv('ev-city');
+  document.getElementById('en-src').value=(city==='Vancouver BC')?'0.018':'0.288152';
+  updateRatingPreview();
+}
+
+function getRating(p){
+  if(p<=0)return null;
+  if(p<1) return{score:5,label:'Exemplary',   emoji:'🌟',color:'#1D9E75',bg:'#E1F5EE',reason:'Under 1 kg CO2e per person — outstanding for a community event.'};
+  if(p<3) return{score:4,label:'Good effort',  emoji:'✅',color:'#639922',bg:'#EAF3DE',reason:'1–3 kg CO2e per person — above average for this type of event.'};
+  if(p<6) return{score:3,label:'Average',      emoji:'📊',color:'#BA7517',bg:'#FAEEDA',reason:'3–6 kg CO2e per person — typical for urban community events.'};
+  if(p<12)return{score:2,label:'Below average',emoji:'⚠️',color:'#D85A30',bg:'#FAECE7',reason:'6–12 kg CO2e per person — travel or catering choices are adding up.'};
+  return  {score:1,label:'Needs improvement', emoji:'🔴',color:'#A32D2D',bg:'#FCEBEB',reason:'Over 12 kg CO2e per person — worth reviewing travel and catering.'};
+}
+
+function calcWaste(){
+  var kgO=v('w-kg'),divO=v('w-div');
+  if(kgO>0&&divO>0)return kgO*(1-divO/100)*0.5;
+  return v('w-land')*12*0.5;
+}
+
+function calcCO2(){
+  var att=v('ev-att')||1;
+  var dist=v('t-dist')||8,fdist=v('t-fdist')||500;
+  var ef={walk:0,transit:0.089,ev:0.05,gas:0.21,ride:0.24,flight:0.255};
+  var modes=[['t-walk','walk',dist],['t-transit','transit',dist],['t-ev','ev',dist],['t-gas','gas',dist],['t-ride','ride',dist],['t-flight','flight',fdist]];
+  var tCO2=0;
+  modes.forEach(function(m){tCO2+=att*(v(m[0])/100)*m[2]*2*ef[m[1]];});
+  var eCO2=(v('en-sqft')*2/1000)*v('en-hrs')*parseFloat(sv('en-src'));
+  var catEF={vegan:0.5,'mostly-plant':1.2,mixed:2.5,meatheavy:5.5};
+  var cCO2=sv('cat-yn')==='yes'?v('cat-meals')*((catEF[sv('cat-type')]||0)+(parseFloat(sv('cat-pack'))||0)+(parseFloat(sv('cat-src'))||0)):0;
+  var wCO2=calcWaste();
+  var mCO2=(v('mat-pages')*0.005)+(att*(parseFloat(sv('mat-swag'))||0))+(parseFloat(sv('mat-sign'))||0);
+  return{travel:tCO2,energy:eCO2,catering:cCO2,waste:wCO2,materials:mCO2,total:tCO2+eCO2+cCO2+wCO2+mCO2};
+}
+
+function updateRatingPreview(){
+  var att=v('ev-att')||0,el=document.getElementById('rating-preview');
+  if(!att){
+    el.style.background='var(--bg-secondary)';
+    el.innerHTML='<div style="font-size:13px;color:var(--text-tertiary);">Fill in the form to preview your rating.</div>';
+    return;
+  }
+  var co2=calcCO2(),p=co2.total/att,r=getRating(p);
+  if(!r)return;
+  el.style.background=r.bg;
+  el.innerHTML=
+    '<div style="font-size:36px;line-height:1;min-width:44px;">'+r.emoji+'</div>'+
+    '<div>'+
+      '<div style="font-size:15px;font-weight:600;color:'+r.color+';">'+r.score+'/5 — '+r.label+'</div>'+
+      '<div style="font-size:12px;color:#6b6b67;margin-top:3px;">'+r.reason+'</div>'+
+      '<div style="font-size:11px;color:#9e9e99;margin-top:5px;font-weight:500;">'+
+        p.toFixed(2)+' kg CO2e / person &nbsp;·&nbsp; '+co2.total.toFixed(1)+' kg total'+
+      '</div>'+
+    '</div>';
+}
+
+document.addEventListener('input',function(e){
+  if(['ev-att','en-hrs','en-sqft','cat-meals','w-land','w-rec','w-comp','w-kg','w-div','mat-pages','t-dist','t-fdist'].indexOf(e.target.id)>-1)
+    updateRatingPreview();
+});
+document.addEventListener('change',function(){updateRatingPreview();});
+
+function addEvent(){
+  var name=document.getElementById('ev-name').value.trim();
+  var att=v('ev-att');
+  var warn=document.getElementById('add-warn');
+  if(!name){warn.style.display='';warn.textContent='Please enter an event name.';return;}
+  if(!att){warn.style.display='';warn.textContent='Please enter attendee count.';return;}
+  warn.style.display='none';
+  var co2=calcCO2(),p=co2.total/att,rating=getRating(p);
+  var evt={
+    name:name,date:sv('ev-date'),city:sv('ev-city'),
+    host:document.getElementById('ev-host').value.trim(),
+    venue:document.getElementById('ev-venue').value.trim(),
+    att:att,rating:rating,perAtt:p,
+    qualGood:document.getElementById('q-good').value,
+    qualImprove:document.getElementById('q-improve').value,
+    submitterName:gv('sub-name'),submitterEmail:gv('sub-email'),
+    co2:co2
+  };
+  events.push(evt);
+  renderList();renderMetrics();renderBars();
+  saveEventToBackend(evt);
+}
+
+async function saveEventToBackend(evt){
+  var btn=document.getElementById('add-btn');
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    var res=await fetch(API_BASE+'/api/events',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        event_name:evt.name,event_date:evt.date||null,city:evt.city||null,
+        organizer:evt.host||null,total_attendees:evt.att,
+        venue_name:evt.venue||null,event_type:sv('ev-type')||null,
+        submitter_name:evt.submitterName||null,submitter_email:evt.submitterEmail||null,
+        travel_walk_bike_pct:v('t-walk'),travel_transit_pct:v('t-transit'),
+        travel_ev_carpool_pct:v('t-ev'),travel_gas_car_pct:v('t-gas'),
+        travel_ridehail_pct:v('t-ride'),travel_flight_pct:v('t-flight'),
+        local_distance_km:v('t-dist'),flight_distance_km:v('t-fdist'),
+        duration_hours:v('en-hrs'),venue_size_sqft:v('en-sqft'),energy_source:sv('en-src'),
+        catering_provided:sv('cat-yn')==='yes',food_type:sv('cat-type'),
+        portions:v('cat-meals'),sourcing:sv('cat-src'),packaging:sv('cat-pack'),
+        landfill_bags:v('w-land'),recycling_bags:v('w-rec'),compost_bags:v('w-comp'),
+        pages_printed:v('mat-pages'),swag_type:sv('mat-swag'),signage_category:sv('mat-sign'),
+        total_co2e_kg:evt.co2.total,per_attendee_co2e_kg:evt.perAtt,
+        travel_co2_kg:evt.co2.travel,energy_co2_kg:evt.co2.energy,
+        catering_co2_kg:evt.co2.catering,waste_co2_kg:evt.co2.waste,
+        materials_co2_kg:evt.co2.materials,
+        rating:evt.rating?evt.rating.label:null,
+        what_worked_well:evt.qualGood,what_to_improve:evt.qualImprove
+      })
+    });
+    if(res.ok){showToast('Event saved ✓');loadLiveStats();}
+    else{console.warn('Save failed:',await res.text());showToast('Saved locally — server error','err');}
+  }catch(e){
+    console.warn('Backend unreachable:',e);
+    showToast('Saved locally — offline','err');
+  }finally{
+    btn.disabled=false;btn.textContent='🌿 Log this event';
+  }
+}
+
+function deleteEvent(i){events.splice(i,1);renderList();renderMetrics();renderBars();}
+
+function renderList(){
+  var el=document.getElementById('event-list');
+  if(!events.length){el.innerHTML='<div class="empty">No events logged yet.</div>';return;}
+  var html='';
+  events.forEach(function(ev,i){
+    var r=ev.rating,stripe=r?r.color:'var(--border)';
+    var badge=r?'<span class="ebadge" style="background:'+r.bg+';color:'+r.color+';">'+r.emoji+' '+r.label+'</span>':'';
+    var meta=[ev.date,ev.city,ev.venue].filter(Boolean).join(' · ');
+    html+='<div class="ecard">'+
+      '<div class="ecard-stripe" style="background:'+stripe+';"></div>'+
+      '<div>'+
+        '<div class="ecard-name">'+ev.name+'</div>'+
+        (meta?'<div class="ecard-meta">'+meta+'</div>':'')+
+        '<div class="ecard-cats">'+
+          '<span class="ecat">🚲 '+ev.co2.travel.toFixed(1)+' kg</span>'+
+          '<span class="ecat">⚡ '+ev.co2.energy.toFixed(1)+' kg</span>'+
+          '<span class="ecat">🥗 '+ev.co2.catering.toFixed(1)+' kg</span>'+
+          '<span class="ecat">🗑️ '+ev.co2.waste.toFixed(1)+' kg</span>'+
+          '<span class="ecat">📦 '+ev.co2.materials.toFixed(1)+' kg</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="ecard-right">'+
+        '<div class="etotal">'+ev.co2.total.toFixed(1)+'<span class="etotal-unit"> kg</span></div>'+
+        badge+
+        '<button class="del" onclick="deleteEvent('+i+')">✕ remove</button>'+
+      '</div>'+
+    '</div>';
+  });
+  el.innerHTML=html;
+}
+
+function renderMetrics(){
+  var totalCO2=0,totalAtt=0;
+  events.forEach(function(ev){totalCO2+=ev.co2.total;totalAtt+=ev.att;});
+  document.getElementById('m-total').textContent=totalCO2.toFixed(1);
+  document.getElementById('m-events').textContent=events.length;
+  document.getElementById('m-att').textContent=totalAtt;
+  document.getElementById('m-per').textContent=totalAtt>0?(totalCO2/totalAtt).toFixed(2):'—';
+}
+
+function renderBars(){
+  var el=document.getElementById('bar-chart');
+  if(!events.length){el.innerHTML='<div class="empty">Add an event to see the breakdown.</div>';return;}
+  var cats=[
+    {key:'travel',   label:'🚲 Travel',   color:'#1D9E75'},
+    {key:'energy',   label:'⚡ Energy',   color:'#7F77DD'},
+    {key:'catering', label:'🥗 Catering', color:'#639922'},
+    {key:'waste',    label:'🗑️ Waste',    color:'#BA7517'},
+    {key:'materials',label:'📦 Materials',color:'#D4537E'}
+  ];
+  var totals={};
+  cats.forEach(function(c){totals[c.key]=0;});
+  events.forEach(function(ev){cats.forEach(function(c){totals[c.key]+=ev.co2[c.key];});});
+  var grand=cats.reduce(function(s,c){return s+totals[c.key];},0);
+  var maxVal=Math.max.apply(null,cats.map(function(c){return totals[c.key];}));
+  if(maxVal===0)maxVal=1;
+  var html='';
+  cats.forEach(function(c){
+    var pct=Math.round(totals[c.key]/maxVal*100);
+    var share=grand>0?Math.round(totals[c.key]/grand*100):0;
+    html+='<div class="bar-row">'+
+      '<span class="bar-cat">'+c.label+'</span>'+
+      '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+c.color+';"></div></div>'+
+      '<span class="bar-val">'+totals[c.key].toFixed(1)+' kg <span style="font-size:11px;font-weight:400;color:var(--text-tertiary);">('+share+'%)</span></span>'+
+    '</div>';
+  });
+  el.innerHTML=html;
+}
+</script>
+</body>
+</html>
