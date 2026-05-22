@@ -216,6 +216,16 @@
   </div>
 
   <div class="card">
+    <div class="card-label">Import from Luma <span style="font-size:10px;color:var(--text-tertiary);font-weight:400;text-transform:none;letter-spacing:0;">optional</span></div>
+    <div class="note">Paste a Luma event URL to auto-fill event name, date, city, venue, attendees, and duration.</div>
+    <div class="fg fg2" style="align-items:flex-end;">
+      <div class="f"><label class="fl">Luma event URL</label><input type="text" id="luma-url" placeholder="https://lu.ma/your-event"></div>
+      <div><button class="btn-primary" style="padding:8px 18px;font-size:13px;font-weight:500;" onclick="importFromLuma()">Import</button></div>
+    </div>
+    <div id="luma-status" style="font-size:12px;margin-top:8px;display:none;"></div>
+  </div>
+
+  <div class="card">
     <div class="card-label">Your details</div>
     <div class="fg fg2">
       <div class="f"><label class="fl">Name</label><input type="text" id="sub-name" placeholder="e.g. Alex Chen"></div>
@@ -387,7 +397,7 @@
 
 </div>
 <script>
-var API_BASE='https://pnw-carbon-backend.vercel.app';
+var API_BASE='';
 var events=[];
 
 async function loadLiveStats(){
@@ -625,6 +635,32 @@ function renderMetrics(){
   document.getElementById('m-events').textContent=events.length;
   document.getElementById('m-att').textContent=totalAtt;
   document.getElementById('m-per').textContent=totalAtt>0?(totalCO2/totalAtt).toFixed(2):'—';
+}
+
+async function importFromLuma(){
+  var url=document.getElementById('luma-url').value.trim();
+  if(!url)return;
+  var statusEl=document.getElementById('luma-status');
+  statusEl.style.display='';
+  statusEl.style.color='var(--text-tertiary)';
+  statusEl.textContent='Importing…';
+  try{
+    var res=await fetch('/api/luma-import?url='+encodeURIComponent(url));
+    var d=await res.json();
+    if(!res.ok){statusEl.style.color='var(--red-text,#A32D2D)';statusEl.textContent=d.error||'Import failed';return;}
+    if(d.event_name)document.getElementById('ev-name').value=d.event_name;
+    if(d.date)document.getElementById('ev-date').value=d.date;
+    if(d.city)document.getElementById('ev-city').value=d.city;
+    if(d.venue_name)document.getElementById('ev-venue').value=d.venue_name;
+    if(d.attendees)document.getElementById('ev-att').value=d.attendees;
+    if(d.duration_hours)document.getElementById('en-hrs').value=d.duration_hours.toFixed(1);
+    autoSetEnergy();updateRatingPreview();
+    statusEl.style.color='var(--accent)';
+    statusEl.textContent='Imported: '+(d.event_name||'event')+(d.attendees?' · '+d.attendees+' attendees':'')+(d.city?' · '+d.city:'');
+  }catch(e){
+    statusEl.style.color='var(--red-text,#A32D2D)';
+    statusEl.textContent='Could not reach import service';
+  }
 }
 
 function renderBars(){
