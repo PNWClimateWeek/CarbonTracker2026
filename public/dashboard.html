@@ -54,13 +54,14 @@
     .badge-needs{background:var(--red-bg);color:var(--red-text);}
     .empty{font-size:13px;color:var(--text-tertiary);padding:.5rem 0;}
     /* Gate */
-    #gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:14px;}
-    #gate h2{font-size:18px;font-weight:500;}
-    #gate p{font-size:13px;color:var(--text-secondary);}
-    #gate input{font-size:14px;font-family:inherit;padding:9px 12px;border-radius:var(--radius-md);border:0.5px solid var(--border-mid);background:var(--bg-secondary);color:var(--text-primary);width:260px;outline:none;}
-    #gate input:focus{border-color:var(--accent);}
-    #gate button{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-md);padding:9px 22px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;}
-    #gate button:hover{background:var(--accent-dark);}
+    #gate{padding:3rem 0;}
+    #gate-inner{background:var(--bg-secondary);border:0.5px solid var(--border-mid);border-radius:var(--radius-lg);padding:2rem;max-width:360px;display:flex;flex-direction:column;gap:12px;}
+    #gate-inner h2{font-size:18px;font-weight:500;margin:0;}
+    #gate-inner p{font-size:13px;color:var(--text-secondary);margin:0;}
+    #gate-inner input{font-size:14px;font-family:inherit;padding:9px 12px;border-radius:var(--radius-md);border:0.5px solid var(--border-mid);background:var(--bg);color:var(--text-primary);width:100%;outline:none;}
+    #gate-inner input:focus{border-color:var(--accent);}
+    #gate-inner button{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-md);padding:9px 22px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;align-self:flex-start;}
+    #gate-inner button:hover{background:var(--accent-dark);}
     #gate-err{font-size:12px;color:var(--red-text,#A32D2D);display:none;}
     #main{display:none;}
     .btn-outline{background:none;border:0.5px solid var(--border-mid);color:var(--text-secondary);border-radius:var(--radius-md);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;}
@@ -73,12 +74,14 @@
 <div class="page">
 
   <div id="gate">
-    <div style="font-size:28px;">🌿</div>
-    <h2>PNW Climate Week</h2>
-    <p>Internal dashboard — team access only</p>
-    <input type="password" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')unlock()">
-    <button onclick="unlock()">Access dashboard</button>
-    <span id="gate-err">Incorrect password</span>
+    <div id="gate-inner">
+      <div style="font-size:28px;line-height:1;">🌿</div>
+      <h2>PNW Climate Week</h2>
+      <p>Internal dashboard — team access only</p>
+      <input type="password" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')unlock()">
+      <button onclick="unlock()">Access dashboard</button>
+      <span id="gate-err">Incorrect password</span>
+    </div>
   </div>
 
   <div id="main">
