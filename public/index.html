@@ -379,12 +379,8 @@
   </div>
 
   <div class="card">
-    <div class="card-label">🌱 Sustainability rating</div>
-    <div class="note">Calculated automatically from kg CO2e per attendee. Based on benchmarks for community events in transit-accessible cities.</div>
-    <div id="rating-preview" class="rating-box" style="background:var(--bg-secondary);">
-      <div style="font-size:13px;color:var(--text-tertiary);">Fill in the form to preview your rating.</div>
-    </div>
-    <div class="fg fg2" style="margin-top:14px;">
+    <div class="card-label">Reflections</div>
+    <div class="fg fg2">
       <div class="f"><label class="fl">What worked well?</label><textarea id="q-good" placeholder="e.g. Transit-accessible venue, plant-based catering..."></textarea></div>
       <div class="f"><label class="fl">What to improve?</label><textarea id="q-improve" placeholder="e.g. Need compost bins, printed too many programs..."></textarea></div>
     </div>
@@ -404,7 +400,7 @@
     <div class="card-label">Emissions by category</div>
     <div id="bar-chart"><div class="empty">Add an event to see the breakdown.</div></div>
     <hr>
-    <div class="meth">Long-distance travel (Q1): bus 0.068 kg/km; train 0.041 kg/km; car 0.21 kg/km; flight 0.255 kg/km (DEFRA 2023). Local travel (Q2): walk/bike 0 kg/km; transit 0.089 kg/km; car 0.21 kg/km. Energy grid: WA/OR (NWPP eGrid) 0.288 kg CO2e/kWh (EPA eGRID 2024); BC 0.018 kg CO2e/kWh (Canada OBPS 2026); diesel generator 0.2 kg CO2e/kWh. Venue load 2W/sq ft. Catering: plant-based 0.5 kg/meal, mostly-plant 1.2, mixed 2.5, meat-heavy 5.5. Waste: 0.5 kg CO2e/kg landfill; bag count uses 12 kg/bag. Pages: 0.005 kg/page. Rating per attendee: exemplary &lt;1 kg, good 1–3 kg, average 3–6 kg, below average 6–12 kg, needs work &gt;12 kg. Sources: GHG Protocol, DEFRA 2023, EPA eGRID, Environment and Climate Change Canada.</div>
+    <div class="meth">Long-distance travel (Q1): bus 0.068 kg/km; train 0.041 kg/km; car 0.21 kg/km; flight 0.255 kg/km (DEFRA 2023). Local travel (Q2): walk/bike 0 kg/km; transit 0.089 kg/km; car 0.21 kg/km. Energy grid: WA/OR (NWPP eGrid) 0.288 kg CO2e/kWh (EPA eGRID 2024); BC 0.018 kg CO2e/kWh (Canada OBPS 2026); diesel generator 0.2 kg CO2e/kWh. Venue load 2W/sq ft. Catering: plant-based 0.5 kg/meal, mostly-plant 1.2, mixed 2.5, meat-heavy 5.5. Waste: 0.5 kg CO2e/kg landfill; bag count uses 12 kg/bag. Pages: 0.005 kg/page. Sources: GHG Protocol, DEFRA 2023, EPA eGRID, Environment and Climate Change Canada.</div>
   </div>
 
   <footer>PNW Climate Week · CO2 calculator for community event organizers in Tacoma, Bend, Seattle, Portland, Vancouver BC, and Bellingham. · <a href="/dashboard.html" style="color:var(--text-tertiary);text-decoration:none;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-tertiary)'">Team dashboard</a></footer>
@@ -534,26 +530,7 @@ function calcCO2(){
   return{travel:tCO2,energy:eCO2,catering:cCO2,waste:wCO2,materials:mCO2,total:tCO2+eCO2+cCO2+wCO2+mCO2};
 }
 
-function updateRatingPreview(){
-  var att=v('ev-att')||0,el=document.getElementById('rating-preview');
-  if(!att){
-    el.style.background='var(--bg-secondary)';
-    el.innerHTML='<div style="font-size:13px;color:var(--text-tertiary);">Fill in the form to preview your rating.</div>';
-    return;
-  }
-  var co2=calcCO2(),p=co2.total/att,r=getRating(p);
-  if(!r)return;
-  el.style.background=r.bg;
-  el.innerHTML=
-    '<div style="font-size:36px;line-height:1;min-width:44px;">'+r.emoji+'</div>'+
-    '<div>'+
-      '<div style="font-size:15px;font-weight:600;color:'+r.color+';">'+r.score+'/5 — '+r.label+'</div>'+
-      '<div style="font-size:12px;color:#6b6b67;margin-top:3px;">'+r.reason+'</div>'+
-      '<div style="font-size:11px;color:#9e9e99;margin-top:5px;font-weight:500;">'+
-        p.toFixed(2)+' kg CO2e / person &nbsp;·&nbsp; '+co2.total.toFixed(1)+' kg total'+
-      '</div>'+
-    '</div>';
-}
+function updateRatingPreview(){}
 
 document.addEventListener('input',function(e){
   if(['ev-att','en-hrs','en-sqft','cat-meals','w-land','w-rec','w-comp','w-kg','w-div','mat-pages','t-dist','t-long-dist','t-fdist'].indexOf(e.target.id)>-1)
@@ -631,11 +608,9 @@ function renderList(){
   if(!events.length){el.innerHTML='<div class="empty">No events logged yet.</div>';return;}
   var html='';
   events.forEach(function(ev,i){
-    var r=ev.rating,stripe=r?r.color:'var(--border)';
-    var badge=r?'<span class="ebadge" style="background:'+r.bg+';color:'+r.color+';">'+r.emoji+' '+r.label+'</span>':'';
     var meta=[ev.date,ev.city,ev.venue].filter(Boolean).join(' · ');
     html+='<div class="ecard">'+
-      '<div class="ecard-stripe" style="background:'+stripe+';"></div>'+
+      '<div class="ecard-stripe" style="background:var(--accent);"></div>'+
       '<div>'+
         '<div class="ecard-name">'+ev.name+'</div>'+
         (meta?'<div class="ecard-meta">'+meta+'</div>':'')+
@@ -649,7 +624,6 @@ function renderList(){
       '</div>'+
       '<div class="ecard-right">'+
         '<div class="etotal">'+ev.co2.total.toFixed(1)+'<span class="etotal-unit"> kg</span></div>'+
-        badge+
         '<button class="del" onclick="deleteEvent('+i+')">✕ remove</button>'+
       '</div>'+
     '</div>';
