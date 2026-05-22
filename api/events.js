@@ -68,8 +68,9 @@ async function createEvent(req, res, pool) {
   const { rows } = await pool.query(
     `INSERT INTO events (
       event_name, event_date, city, organizer, total_attendees, venue_name, event_type,
-      travel_walk_bike_pct, travel_transit_pct, travel_ev_carpool_pct,
-      travel_gas_car_pct, travel_ridehail_pct, travel_flight_pct,
+      travel_local_pct, travel_bus_pct, travel_train_pct, travel_car_long_pct,
+      travel_flight_pct, long_distance_km,
+      travel_walk_bike_pct, travel_transit_pct, travel_car_local_pct,
       local_distance_km, flight_distance_km,
       duration_hours, venue_size_sqft, energy_source,
       catering_provided, food_type, portions, sourcing, packaging,
@@ -82,22 +83,24 @@ async function createEvent(req, res, pool) {
       submitter_name, submitter_email
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,
-      $8,$9,$10,$11,$12,$13,$14,$15,
-      $16,$17,$18,
-      $19,$20,$21,$22,$23,
-      $24,$25,$26,$27,$28,$29,
-      $30,$31,$32,
-      $33,$34,$35,$36,$37,$38,$39,
-      $40,$41,$42,
-      $43,$44
+      $8,$9,$10,$11,$12,$13,
+      $14,$15,$16,$17,$18,
+      $19,$20,$21,
+      $22,$23,$24,$25,$26,
+      $27,$28,$29,$30,$31,$32,
+      $33,$34,$35,
+      $36,$37,$38,$39,$40,$41,$42,
+      $43,$44,$45,
+      $46,$47
     ) RETURNING *`,
     [
       d.event_name, d.event_date || null, d.city || null, d.organizer || null,
       parseInt(d.total_attendees), d.venue_name || null, d.event_type || null,
+      d.travel_local_pct ?? null, d.travel_bus_pct ?? null,
+      d.travel_train_pct ?? null, d.travel_car_long_pct ?? null,
+      d.travel_flight_pct ?? null, d.long_distance_km ?? null,
       d.travel_walk_bike_pct ?? null, d.travel_transit_pct ?? null,
-      d.travel_ev_carpool_pct ?? null, d.travel_gas_car_pct ?? null,
-      d.travel_ridehail_pct ?? null, d.travel_flight_pct ?? null,
-      d.local_distance_km ?? null, d.flight_distance_km ?? null,
+      d.travel_car_local_pct ?? null, d.local_distance_km ?? null, d.flight_distance_km ?? null,
       d.duration_hours ?? null, d.venue_size_sqft ?? null, d.energy_source || null,
       d.catering_provided ?? null, d.food_type || null,
       d.portions ?? null, d.sourcing || null, d.packaging || null,
