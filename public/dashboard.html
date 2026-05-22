@@ -5,155 +5,164 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PNW Climate Week — Internal Dashboard</title>
   <style>
-    :root {
-      --bg:#ffffff; --bg-secondary:#f5f5f3; --bg-tertiary:#efefec;
-      --text-primary:#1a1a18; --text-secondary:#6b6b67; --text-tertiary:#9e9e99;
-      --border:rgba(0,0,0,0.12); --border-mid:rgba(0,0,0,0.20);
-      --radius-md:8px; --radius-lg:12px; --accent:#1D9E75; --accent-dark:#0F6E56;
-      --green-bg:#EAF3DE; --green-text:#3B6D11;
-      --amber-bg:#FAEEDA; --amber-text:#854F0B;
-      --red-bg:#FCEBEB; --red-text:#A32D2D;
-    }
-    @media(prefers-color-scheme:dark){:root{
-      --bg:#1e1e1c; --bg-secondary:#2a2a28; --bg-tertiary:#333330;
-      --text-primary:#f0f0ec; --text-secondary:#a0a09c; --text-tertiary:#6e6e6a;
-      --border:rgba(255,255,255,0.10); --border-mid:rgba(255,255,255,0.18);
-      --green-bg:#173404; --green-text:#C0DD97;
-      --amber-bg:#412402; --amber-text:#FAC775;
-      --red-bg:#501313; --red-text:#F7C1C1;
-    }}
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;background:var(--bg);color:var(--text-primary);padding:2rem 1rem 4rem;}
-    .page{max-width:900px;margin:0 auto;}
-    header{margin-bottom:2rem;}
-    header h1{font-size:20px;font-weight:500;margin-bottom:.3rem;}
-    header p{font-size:13px;color:var(--text-secondary);}
-    .card{background:var(--bg);border:0.5px solid var(--border-mid);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1rem;}
-    .card-label{font-size:11px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.875rem;display:flex;align-items:center;justify-content:space-between;}
-    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem;}
-    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;}
-    .metric{background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.1rem;}
-    .metric-label{font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
-    .metric-value{font-size:22px;font-weight:500;}
-    .metric-unit{font-size:11px;color:var(--text-tertiary);margin-top:2px;}
-    .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
-    .bar-cat{font-size:12px;color:var(--text-secondary);width:110px;flex-shrink:0;}
-    .bar-track{flex:1;height:8px;background:var(--bg-secondary);border-radius:4px;overflow:hidden;}
-    .bar-fill{height:100%;border-radius:4px;transition:width .4s ease;}
-    .bar-val{font-size:12px;font-weight:500;width:120px;text-align:right;flex-shrink:0;}
-    table{width:100%;border-collapse:collapse;font-size:13px;}
-    thead th{font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.04em;padding:6px 10px;text-align:left;border-bottom:0.5px solid var(--border-mid);}
-    tbody td{padding:9px 10px;border-bottom:0.5px solid var(--border);}
-    tbody tr:last-child td{border-bottom:none;}
-    tbody tr:hover{background:var(--bg-secondary);}
-    .badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:8px;white-space:nowrap;}
-    .badge-exemplary{background:var(--green-bg);color:var(--green-text);}
-    .badge-good{background:#EAF3DE;color:#3B6D11;}
-    .badge-average{background:var(--amber-bg);color:var(--amber-text);}
-    .badge-below{background:#FAECE7;color:#D85A30;}
-    .badge-needs{background:var(--red-bg);color:var(--red-text);}
-    .empty{font-size:13px;color:var(--text-tertiary);padding:.5rem 0;}
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px; background: #f5f5f3; color: #1a1a18; padding: 2rem 1rem 4rem; }
+    .wrap { max-width: 940px; margin: 0 auto; }
+
     /* Gate */
-    #gate{padding:3rem 0;}
-    #gate-inner{background:var(--bg-secondary);border:0.5px solid var(--border-mid);border-radius:var(--radius-lg);padding:2rem;max-width:360px;display:flex;flex-direction:column;gap:12px;}
-    #gate-inner h2{font-size:18px;font-weight:500;margin:0;}
-    #gate-inner p{font-size:13px;color:var(--text-secondary);margin:0;}
-    #gate-inner input{font-size:14px;font-family:inherit;padding:9px 12px;border-radius:var(--radius-md);border:0.5px solid var(--border-mid);background:var(--bg);color:var(--text-primary);width:100%;outline:none;}
-    #gate-inner input:focus{border-color:var(--accent);}
-    #gate-inner button{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-md);padding:9px 22px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;align-self:flex-start;}
-    #gate-inner button:hover{background:var(--accent-dark);}
-    #gate-err{font-size:12px;color:var(--red-text,#A32D2D);display:none;}
-    #main{display:none;}
-    .btn-outline{background:none;border:0.5px solid var(--border-mid);color:var(--text-secondary);border-radius:var(--radius-md);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;}
-    .btn-outline:hover{border-color:var(--accent);color:var(--accent);}
-    .flag-row td:first-child{font-weight:500;}
-    @media(max-width:600px){.grid4{grid-template-columns:repeat(2,1fr);}.grid3{grid-template-columns:repeat(1,1fr);}table{font-size:12px;}}
+    .gate-card { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 2rem; max-width: 380px; margin: 3rem 0; }
+    .gate-card h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .gate-card p { font-size: 13px; color: #6b6b67; margin-bottom: 1.25rem; }
+    .gate-card input { width: 100%; font-size: 14px; font-family: inherit; padding: 9px 12px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 10px; background: #f9f9f7; color: #1a1a18; outline: none; }
+    .gate-card input:focus { border-color: #1D9E75; }
+    .gate-card button { background: #1D9E75; color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; }
+    .gate-card button:hover { background: #0F6E56; }
+    .err-msg { font-size: 13px; color: #A32D2D; margin-top: 8px; display: none; }
+
+    /* Dashboard */
+    #dashboard { display: none; }
+    h2 { font-size: 16px; font-weight: 600; margin: 2rem 0 1rem; color: #1a1a18; }
+    h2:first-child { margin-top: 0; }
+
+    /* Summary grid */
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 2rem; }
+    .stat-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 1rem 1.2rem; }
+    .stat-label { font-size: 11px; font-weight: 600; color: #9e9e99; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+    .stat-value { font-size: 26px; font-weight: 600; color: #1a1a18; }
+    .stat-unit { font-size: 11px; color: #9e9e99; margin-top: 2px; }
+
+    /* Bar chart */
+    .bars { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 1.25rem; margin-bottom: 2rem; }
+    .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .bar-row:last-child { margin-bottom: 0; }
+    .bar-label { font-size: 13px; color: #6b6b67; width: 120px; flex-shrink: 0; }
+    .bar-track { flex: 1; height: 10px; background: #f0f0ee; border-radius: 5px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 5px; }
+    .bar-val { font-size: 13px; font-weight: 600; width: 110px; text-align: right; flex-shrink: 0; color: #1a1a18; }
+
+    /* Table */
+    .table-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden; margin-bottom: 2rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { background: #f5f5f3; font-size: 11px; font-weight: 600; color: #9e9e99; text-transform: uppercase; letter-spacing: .04em; padding: 10px 14px; text-align: left; border-bottom: 1px solid #e8e8e6; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid #f0f0ee; color: #1a1a18; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #fafaf8; }
+
+    /* Badges */
+    .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px; white-space: nowrap; display: inline-block; }
+    .b-exemplary { background: #EAF3DE; color: #3B6D11; }
+    .b-good { background: #EAF3DE; color: #3B6D11; }
+    .b-average { background: #FAEEDA; color: #854F0B; }
+    .b-below { background: #FAECE7; color: #D85A30; }
+    .b-needs { background: #FCEBEB; color: #A32D2D; }
+
+    /* CSV button */
+    .btn-csv { background: none; border: 1px solid #ccc; color: #6b6b67; border-radius: 8px; padding: 5px 14px; font-size: 12px; font-family: inherit; cursor: pointer; float: right; margin-top: -2px; }
+    .btn-csv:hover { border-color: #1D9E75; color: #1D9E75; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin: 2rem 0 1rem; }
+    .section-header h2 { margin: 0; }
+
+    .loading { color: #9e9e99; font-size: 13px; padding: 1rem 0; }
+    .flag-section { background: #FFF8F8; border: 1px solid #F4C0C0; border-radius: 10px; padding: 1.25rem; margin-bottom: 2rem; }
+    .flag-section h2 { color: #A32D2D; margin: 0 0 1rem; }
+
+    @media(max-width: 640px) { .grid { grid-template-columns: repeat(2, 1fr); } table { font-size: 12px; } thead th, tbody td { padding: 8px 10px; } }
   </style>
 </head>
 <body>
-<div class="page">
+<div class="wrap">
 
   <div id="gate">
-    <div id="gate-inner">
-      <div style="font-size:28px;line-height:1;">🌿</div>
-      <h2>PNW Climate Week</h2>
+    <div class="gate-card">
+      <h1>🌿 PNW Climate Week</h1>
       <p>Internal dashboard — team access only</p>
-      <input type="password" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')unlock()">
-      <button onclick="unlock()">Access dashboard</button>
-      <span id="gate-err">Incorrect password</span>
+      <input type="password" id="pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')load()">
+      <button onclick="load()">Access dashboard</button>
+      <div class="err-msg" id="err"></div>
     </div>
   </div>
 
-  <div id="main">
-    <header>
-      <h1>PNW Climate Week — Internal Dashboard</h1>
-      <p id="updated-at" style="color:var(--text-tertiary);font-size:12px;"></p>
-    </header>
+  <div id="dashboard">
+    <h2 style="margin-top:0;">PNW Climate Week — Internal Dashboard <span id="ts" style="font-size:12px;font-weight:400;color:#9e9e99;"></span></h2>
 
-    <div class="grid4" id="summary-cards"></div>
+    <div class="grid" id="summary"></div>
 
-    <div class="card">
-      <div class="card-label">Average CO2e by category <span id="export-btn-wrap"></span></div>
-      <div id="cat-bars"></div>
+    <div class="bars" id="cat-bars"></div>
+
+    <h2>By city</h2>
+    <div class="table-wrap" id="city-table"></div>
+
+    <h2>Ratings</h2>
+    <div class="bars" id="rating-bars"></div>
+
+    <div class="section-header">
+      <h2>All events</h2>
+      <button class="btn-csv" onclick="exportCSV()">Export CSV</button>
     </div>
+    <div class="table-wrap" id="events-table"></div>
 
-    <div class="card">
-      <div class="card-label">By city</div>
-      <div id="city-table"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-label">Ratings breakdown</div>
-      <div id="rating-bars"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-label">All events — sorted by per-attendee CO2e (lowest first) <span id="csv-btn"></span></div>
-      <div id="events-table"></div>
-    </div>
-
-    <div class="card" id="flags-card">
-      <div class="card-label" style="color:var(--red-text,#A32D2D);">⚠️ Needs attention</div>
-      <div id="flags-table"></div>
-    </div>
+    <div id="flags-section"></div>
   </div>
 
 </div>
 <script>
-var SESSION_KEY = null;
+var DATA = null;
 
-function unlock() {
-  var pw = document.getElementById('pw-input').value.trim();
+function load() {
+  var pw = document.getElementById('pw').value.trim();
+  var err = document.getElementById('err');
   if (!pw) return;
+  err.style.display = 'none';
+  err.textContent = '';
+
   fetch('/api/dashboard-data?key=' + encodeURIComponent(pw))
     .then(function(r) {
-      if (r.status === 401) { document.getElementById('gate-err').style.display = ''; return null; }
-      document.getElementById('gate-err').style.display = 'none';
+      if (r.status === 401) { err.style.display = ''; err.textContent = 'Incorrect password.'; return null; }
+      if (!r.ok) { err.style.display = ''; err.textContent = 'Server error — try again.'; return null; }
       return r.json();
     })
-    .then(function(d) { if (d) { SESSION_KEY = pw; render(d); } });
+    .then(function(d) {
+      if (!d) return;
+      DATA = d;
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('dashboard').style.display = '';
+      render(d);
+    })
+    .catch(function(e) {
+      err.style.display = '';
+      err.textContent = 'Could not connect. Check your connection and try again.';
+    });
 }
 
-function ratingBadge(r) {
-  if (!r) return '';
+function n(v, dec) {
+  var val = parseFloat(v);
+  return isNaN(val) ? '—' : val.toFixed(dec === undefined ? 1 : dec);
+}
+
+function badge(r) {
+  if (!r) return '—';
   var map = { 'Exemplary': 'exemplary', 'Good effort': 'good', 'Average': 'average', 'Below average': 'below', 'Needs improvement': 'needs' };
-  var cls = map[r] || 'average';
-  return '<span class="badge badge-' + cls + '">' + r + '</span>';
+  return '<span class="badge b-' + (map[r] || 'average') + '">' + r + '</span>';
 }
 
-function fmt(n, dec) { return n == null ? '—' : parseFloat(n).toFixed(dec != null ? dec : 1); }
+function bar(label, val, max, color, suffix) {
+  var pct = max > 0 ? Math.round(val / max * 100) : 0;
+  return '<div class="bar-row">' +
+    '<span class="bar-label">' + label + '</span>' +
+    '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + color + ';"></div></div>' +
+    '<span class="bar-val">' + n(val, 2) + (suffix || '') + '</span>' +
+  '</div>';
+}
 
 function render(d) {
-  document.getElementById('gate').style.display = 'none';
-  document.getElementById('main').style.display = '';
-  document.getElementById('updated-at').textContent = 'Last loaded: ' + new Date().toLocaleString();
+  document.getElementById('ts').textContent = '— updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
   var s = d.summary;
-  document.getElementById('summary-cards').innerHTML =
-    card('Events logged',    s.event_count,                         '') +
-    card('Total attendees',  parseInt(s.total_attendees).toLocaleString(), '') +
-    card('Total CO2e',       fmt(s.total_co2e_kg, 1),               'kg') +
-    card('Avg per person',   fmt(s.avg_per_attendee_co2e_kg, 2),    'kg CO2e / person');
+  document.getElementById('summary').innerHTML =
+    stat('Events', s.event_count, '') +
+    stat('Attendees', parseInt(s.total_attendees).toLocaleString(), '') +
+    stat('Total CO2e', n(s.total_co2e_kg, 1), 'kg') +
+    stat('Avg / person', n(s.avg_per_attendee_co2e_kg, 2), 'kg CO2e');
 
   var cats = [
     { label: '🚲 Travel',    val: s.avg_travel,    color: '#1D9E75' },
@@ -162,92 +171,64 @@ function render(d) {
     { label: '🗑️ Waste',     val: s.avg_waste,     color: '#BA7517' },
     { label: '📦 Materials', val: s.avg_materials, color: '#D4537E' }
   ];
-  var maxCat = Math.max.apply(null, cats.map(function(c) { return parseFloat(c.val); })) || 1;
-  var totalCat = cats.reduce(function(a, c) { return a + parseFloat(c.val); }, 0) || 1;
-  document.getElementById('cat-bars').innerHTML = cats.map(function(c) {
-    var pct = Math.round(parseFloat(c.val) / maxCat * 100);
-    var share = Math.round(parseFloat(c.val) / totalCat * 100);
-    return '<div class="bar-row">' +
-      '<span class="bar-cat">' + c.label + '</span>' +
-      '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + c.color + ';"></div></div>' +
-      '<span class="bar-val">' + fmt(c.val, 2) + ' kg avg <span style="font-size:11px;font-weight:400;color:var(--text-tertiary);">(' + share + '%)</span></span>' +
-    '</div>';
-  }).join('');
+  var maxCat = Math.max.apply(null, cats.map(function(c){ return parseFloat(c.val)||0; })) || 1;
+  document.getElementById('cat-bars').innerHTML =
+    '<div style="font-size:11px;font-weight:600;color:#9e9e99;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;">Average CO2e by category</div>' +
+    cats.map(function(c){ return bar(c.label, c.val, maxCat, c.color, ' kg avg'); }).join('');
 
-  var cityRows = d.by_city.length ? d.by_city.map(function(c) {
-    return '<tr><td>' + (c.city || '—') + '</td><td>' + c.event_count + '</td><td>' +
-      parseInt(c.total_attendees).toLocaleString() + '</td><td>' + fmt(c.avg_per_attendee, 2) + ' kg</td><td>' +
-      fmt(c.total_co2e_kg, 1) + ' kg</td></tr>';
-  }).join('') : '<tr><td colspan="5" class="empty">No data yet.</td></tr>';
+  var cityRows = (d.by_city || []).map(function(c) {
+    return '<tr><td>' + (c.city||'—') + '</td><td>' + c.event_count + '</td><td>' +
+      parseInt(c.total_attendees).toLocaleString() + '</td><td>' + n(c.avg_per_attendee, 2) + ' kg</td><td>' + n(c.total_co2e_kg, 1) + ' kg</td></tr>';
+  }).join('') || '<tr><td colspan="5" style="color:#9e9e99;">No data yet.</td></tr>';
   document.getElementById('city-table').innerHTML =
     '<table><thead><tr><th>City</th><th>Events</th><th>Attendees</th><th>Avg / person</th><th>Total CO2e</th></tr></thead><tbody>' + cityRows + '</tbody></table>';
 
-  var RATING_ORDER = ['Exemplary', 'Good effort', 'Average', 'Below average', 'Needs improvement'];
-  var ratingMap = {};
-  d.by_rating.forEach(function(r) { ratingMap[r.rating] = r.count; });
-  var totalRated = d.by_rating.reduce(function(a, r) { return a + r.count; }, 0) || 1;
-  document.getElementById('rating-bars').innerHTML = RATING_ORDER.map(function(r) {
-    var count = ratingMap[r] || 0;
-    var pct = Math.round(count / totalRated * 100);
-    var colors = { 'Exemplary': '#1D9E75', 'Good effort': '#639922', 'Average': '#BA7517', 'Below average': '#D85A30', 'Needs improvement': '#A32D2D' };
-    return '<div class="bar-row">' +
-      '<span class="bar-cat" style="width:140px;">' + r + '</span>' +
-      '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + colors[r] + ';"></div></div>' +
-      '<span class="bar-val">' + count + ' event' + (count !== 1 ? 's' : '') + ' <span style="font-size:11px;font-weight:400;color:var(--text-tertiary);">(' + pct + '%)</span></span>' +
-    '</div>';
-  }).join('');
+  var RATINGS = ['Exemplary','Good effort','Average','Below average','Needs improvement'];
+  var RCOLORS = {'Exemplary':'#1D9E75','Good effort':'#639922','Average':'#BA7517','Below average':'#D85A30','Needs improvement':'#A32D2D'};
+  var rmap = {};
+  (d.by_rating||[]).forEach(function(r){ rmap[r.rating] = r.count; });
+  var maxR = Math.max.apply(null, Object.values(rmap).concat([1]));
+  document.getElementById('rating-bars').innerHTML =
+    '<div style="font-size:11px;font-weight:600;color:#9e9e99;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;">Ratings distribution</div>' +
+    RATINGS.map(function(r){ return bar(r, rmap[r]||0, maxR, RCOLORS[r], ' events'); }).join('');
 
-  var evRows = d.events.length ? d.events.map(function(e) {
+  var evRows = (d.events||[]).map(function(e) {
     return '<tr>' +
-      '<td>' + (e.event_name || '—') + '</td>' +
+      '<td><strong>' + (e.event_name||'—') + '</strong></td>' +
       '<td>' + (e.event_date ? e.event_date.slice(0,10) : '—') + '</td>' +
-      '<td>' + (e.city || '—') + '</td>' +
-      '<td>' + (e.total_attendees || '—') + '</td>' +
-      '<td>' + fmt(e.per_attendee_co2e_kg, 2) + ' kg</td>' +
-      '<td>' + fmt(e.total_co2e_kg, 1) + ' kg</td>' +
-      '<td>' + ratingBadge(e.rating) + '</td>' +
-      '<td>' + (e.submitter_name || '—') + '</td>' +
+      '<td>' + (e.city||'—') + '</td>' +
+      '<td>' + (e.total_attendees||'—') + '</td>' +
+      '<td>' + n(e.per_attendee_co2e_kg, 2) + ' kg</td>' +
+      '<td>' + n(e.total_co2e_kg, 1) + ' kg</td>' +
+      '<td>' + badge(e.rating) + '</td>' +
+      '<td>' + (e.submitter_name||'—') + '</td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="8" class="empty">No events yet.</td></tr>';
+  }).join('') || '<tr><td colspan="8" style="color:#9e9e99;">No events yet.</td></tr>';
   document.getElementById('events-table').innerHTML =
     '<table><thead><tr><th>Event</th><th>Date</th><th>City</th><th>Attendees</th><th>Per person</th><th>Total CO2e</th><th>Rating</th><th>Submitted by</th></tr></thead><tbody>' + evRows + '</tbody></table>';
 
-  var flags = d.events.filter(function(e) { return e.rating === 'Needs improvement' || e.rating === 'Below average'; });
+  var flags = (d.events||[]).filter(function(e){ return e.rating === 'Needs improvement' || e.rating === 'Below average'; });
   if (flags.length) {
-    document.getElementById('flags-table').innerHTML =
-      '<table><thead><tr><th>Event</th><th>City</th><th>Attendees</th><th>Per person</th><th>Rating</th><th>To improve</th></tr></thead><tbody>' +
-      flags.map(function(e) {
-        return '<tr class="flag-row">' +
-          '<td>' + (e.event_name || '—') + '</td>' +
-          '<td>' + (e.city || '—') + '</td>' +
-          '<td>' + (e.total_attendees || '—') + '</td>' +
-          '<td>' + fmt(e.per_attendee_co2e_kg, 2) + ' kg</td>' +
-          '<td>' + ratingBadge(e.rating) + '</td>' +
-          '<td style="color:var(--text-secondary);font-size:12px;">' + (e.what_to_improve || '—') + '</td>' +
-        '</tr>';
-      }).join('') +
-      '</tbody></table>';
-  } else {
-    document.getElementById('flags-card').style.display = 'none';
+    var flagRows = flags.map(function(e) {
+      return '<tr><td><strong>' + (e.event_name||'—') + '</strong></td><td>' + (e.city||'—') + '</td><td>' +
+        (e.total_attendees||'—') + '</td><td>' + n(e.per_attendee_co2e_kg, 2) + ' kg</td><td>' + badge(e.rating) + '</td>' +
+        '<td style="color:#6b6b67;">' + (e.what_to_improve||'—') + '</td></tr>';
+    }).join('');
+    document.getElementById('flags-section').innerHTML =
+      '<div class="flag-section"><h2>⚠️ Needs attention (' + flags.length + ')</h2>' +
+      '<table><thead><tr><th>Event</th><th>City</th><th>Attendees</th><th>Per person</th><th>Rating</th><th>To improve</th></tr></thead><tbody>' + flagRows + '</tbody></table></div>';
   }
-
-  document.getElementById('csv-btn').innerHTML = '<button class="btn-outline" onclick="exportCSV()">Export CSV</button>';
-
-  window._dashData = d;
 }
 
-function card(label, value, unit) {
-  return '<div class="metric"><div class="metric-label">' + label + '</div><div class="metric-value">' + value + '</div>' + (unit ? '<div class="metric-unit">' + unit + '</div>' : '') + '</div>';
+function stat(label, value, unit) {
+  return '<div class="stat-card"><div class="stat-label">' + label + '</div><div class="stat-value">' + value + '</div>' + (unit ? '<div class="stat-unit">' + unit + '</div>' : '') + '</div>';
 }
 
 function exportCSV() {
-  var events = window._dashData.events;
-  var cols = ['event_name','event_date','city','organizer','total_attendees','venue_name','event_type','per_attendee_co2e_kg','total_co2e_kg','travel_co2_kg','energy_co2_kg','catering_co2_kg','waste_co2_kg','materials_co2_kg','rating','submitter_name','submitter_email','what_worked_well','what_to_improve','created_at'];
-  var csv = cols.join(',') + '\n' + events.map(function(e) {
-    return cols.map(function(c) {
-      var v = e[c] == null ? '' : String(e[c]);
-      return '"' + v.replace(/"/g, '""') + '"';
-    }).join(',');
+  if (!DATA) return;
+  var cols = ['event_name','event_date','city','organizer','total_attendees','venue_name','per_attendee_co2e_kg','total_co2e_kg','travel_co2_kg','energy_co2_kg','catering_co2_kg','waste_co2_kg','materials_co2_kg','rating','submitter_name','submitter_email','what_worked_well','what_to_improve','created_at'];
+  var csv = cols.join(',') + '\n' + DATA.events.map(function(e) {
+    return cols.map(function(c) { return '"' + String(e[c]||'').replace(/"/g,'""') + '"'; }).join(',');
   }).join('\n');
   var a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
