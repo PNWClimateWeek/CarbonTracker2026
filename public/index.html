@@ -158,6 +158,12 @@
     .empty{font-size:13px;color:var(--text-tertiary);padding:.5rem 0;}
     .meth{font-size:11px;color:var(--text-tertiary);line-height:1.6;}
 
+    /* SDG chips */
+    .sdg-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+    .sdg-chip{font-size:11px;padding:4px 10px;border-radius:20px;border:0.5px solid var(--border-mid);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer;transition:all .15s;user-select:none;line-height:1.5;}
+    .sdg-chip:hover{border-color:var(--accent);color:var(--accent);}
+    .sdg-chip.sel{background:var(--accent);color:#fff;border-color:var(--accent);}
+
     /* Live stats */
     .live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px;animation:pulse 2s infinite;}
     @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
@@ -379,10 +385,36 @@
   </div>
 
   <div class="card">
-    <div class="card-label">Reflections</div>
-    <div class="fg fg2">
-      <div class="f"><label class="fl">What worked well?</label><textarea id="q-good" placeholder="e.g. Transit-accessible venue, plant-based catering..."></textarea></div>
-      <div class="f"><label class="fl">What to improve?</label><textarea id="q-improve" placeholder="e.g. Need compost bins, printed too many programs..."></textarea></div>
+    <div class="card-label">Sustainability initiatives</div>
+    <div class="fg fg2" style="margin-bottom:10px;">
+      <div class="f"><label class="fl">Initiatives taken</label><textarea id="q-initiatives" placeholder="e.g. Partnered with a local zero-waste caterer, offered transit subsidies to attendees..."></textarea></div>
+      <div class="f"><label class="fl">Wins</label><textarea id="q-good" placeholder="e.g. 80% of attendees arrived by transit, zero single-use plastics..."></textarea></div>
+    </div>
+    <div class="fg fg2" style="margin-bottom:14px;">
+      <div class="f"><label class="fl">Barriers</label><textarea id="q-improve" placeholder="e.g. Venue did not have composting, limited budget for sustainable swag..."></textarea></div>
+      <div class="f"></div>
+    </div>
+    <div class="f">
+      <label class="fl">UN SDGs addressed <span style="color:var(--text-tertiary);font-weight:400;">(select all that apply)</span></label>
+      <div class="sdg-chips">
+        <span class="sdg-chip" data-sdg="1" onclick="toggleSDG(this)">1 · No Poverty</span>
+        <span class="sdg-chip" data-sdg="2" onclick="toggleSDG(this)">2 · Zero Hunger</span>
+        <span class="sdg-chip" data-sdg="3" onclick="toggleSDG(this)">3 · Good Health</span>
+        <span class="sdg-chip" data-sdg="4" onclick="toggleSDG(this)">4 · Quality Education</span>
+        <span class="sdg-chip" data-sdg="5" onclick="toggleSDG(this)">5 · Gender Equality</span>
+        <span class="sdg-chip" data-sdg="6" onclick="toggleSDG(this)">6 · Clean Water</span>
+        <span class="sdg-chip" data-sdg="7" onclick="toggleSDG(this)">7 · Clean Energy</span>
+        <span class="sdg-chip" data-sdg="8" onclick="toggleSDG(this)">8 · Decent Work</span>
+        <span class="sdg-chip" data-sdg="9" onclick="toggleSDG(this)">9 · Innovation</span>
+        <span class="sdg-chip" data-sdg="10" onclick="toggleSDG(this)">10 · Reduced Inequalities</span>
+        <span class="sdg-chip" data-sdg="11" onclick="toggleSDG(this)">11 · Sustainable Cities</span>
+        <span class="sdg-chip" data-sdg="12" onclick="toggleSDG(this)">12 · Responsible Consumption</span>
+        <span class="sdg-chip" data-sdg="13" onclick="toggleSDG(this)">13 · Climate Action</span>
+        <span class="sdg-chip" data-sdg="14" onclick="toggleSDG(this)">14 · Life Below Water</span>
+        <span class="sdg-chip" data-sdg="15" onclick="toggleSDG(this)">15 · Life on Land</span>
+        <span class="sdg-chip" data-sdg="16" onclick="toggleSDG(this)">16 · Peace &amp; Justice</span>
+        <span class="sdg-chip" data-sdg="17" onclick="toggleSDG(this)">17 · Partnerships</span>
+      </div>
     </div>
   </div>
 
@@ -531,6 +563,8 @@ function calcCO2(){
 }
 
 function updateRatingPreview(){}
+function toggleSDG(el){el.classList.toggle('sel');}
+function getSDGs(){return Array.from(document.querySelectorAll('.sdg-chip.sel')).map(function(e){return e.dataset.sdg;}).join(',');}
 
 document.addEventListener('input',function(e){
   if(['ev-att','en-hrs','en-sqft','cat-meals','w-land','w-rec','w-comp','w-kg','w-div','mat-pages','t-dist','t-long-dist','t-fdist'].indexOf(e.target.id)>-1)
@@ -588,7 +622,9 @@ async function saveEventToBackend(evt){
         catering_co2_kg:evt.co2.catering,waste_co2_kg:evt.co2.waste,
         materials_co2_kg:evt.co2.materials,
         rating:evt.rating?evt.rating.label:null,
-        what_worked_well:evt.qualGood,what_to_improve:evt.qualImprove
+        what_worked_well:evt.qualGood,what_to_improve:evt.qualImprove,
+        sustainability_initiatives:document.getElementById('q-initiatives').value||null,
+        sdgs:getSDGs()||null
       })
     });
     if(res.ok){showToast('Event saved ✓');loadLiveStats();}

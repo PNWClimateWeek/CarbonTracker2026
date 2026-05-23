@@ -80,7 +80,8 @@ async function createEvent(req, res, pool) {
       total_co2e_kg, per_attendee_co2e_kg,
       travel_co2_kg, energy_co2_kg, catering_co2_kg, waste_co2_kg, materials_co2_kg,
       rating, what_worked_well, what_to_improve,
-      submitter_name, submitter_email
+      submitter_name, submitter_email,
+      sustainability_initiatives, sdgs
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,
       $8,$9,$10,$11,$12,$13,
@@ -91,7 +92,7 @@ async function createEvent(req, res, pool) {
       $33,$34,$35,
       $36,$37,$38,$39,$40,$41,$42,
       $43,$44,$45,
-      $46,$47
+      $46,$47,$48,$49
     ) RETURNING *`,
     [
       d.event_name, d.event_date || null, d.city || null, d.organizer || null,
@@ -112,6 +113,7 @@ async function createEvent(req, res, pool) {
       d.waste_co2_kg ?? null, d.materials_co2_kg ?? null,
       d.rating || null, d.what_worked_well || null, d.what_to_improve || null,
       d.submitter_name || null, d.submitter_email || null,
+      d.sustainability_initiatives || null, d.sdgs || null,
     ]
   );
 
