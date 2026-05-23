@@ -385,6 +385,13 @@
   </div>
 
   <div class="card">
+    <div class="card-label">Sustainable event partners</div>
+    <div class="note" style="margin-bottom:10px;">List any sustainable vendors, suppliers, or organizations you partnered with for this event.</div>
+    <div id="partners-list"></div>
+    <button type="button" onclick="addPartner()" style="background:none;border:0.5px dashed var(--border-mid);color:var(--text-secondary);border-radius:var(--radius-md);padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;width:100%;margin-top:6px;">+ Add partner</button>
+  </div>
+
+  <div class="card">
     <div class="card-label">Sustainability initiatives</div>
     <div class="fg fg2" style="margin-bottom:10px;">
       <div class="f"><label class="fl">Initiatives taken</label><textarea id="q-initiatives" placeholder="e.g. Partnered with a local zero-waste caterer, offered transit subsidies to attendees..."></textarea></div>
@@ -566,6 +573,40 @@ function updateRatingPreview(){}
 function toggleSDG(el){el.classList.toggle('sel');}
 function getSDGs(){return Array.from(document.querySelectorAll('.sdg-chip.sel')).map(function(e){return e.dataset.sdg;}).join(',');}
 
+function addPartner(){
+  var list=document.getElementById('partners-list');
+  var idx=list.children.length;
+  var row=document.createElement('div');
+  row.className='fg fg2';row.style.marginBottom='8px';row.dataset.idx=idx;
+  row.innerHTML='<div class="f"><label class="fl">Partner name</label>'+
+    '<input type="text" placeholder="e.g. Zero Waste Events Co." style="background:var(--bg);"></div>'+
+    '<div class="f"><label class="fl">Category</label>'+
+    '<select style="background:var(--bg);">'+
+      '<option value="">Select…</option>'+
+      '<option>Catering</option>'+
+      '<option>Transportation</option>'+
+      '<option>Venue</option>'+
+      '<option>Waste Management</option>'+
+      '<option>Materials / Swag</option>'+
+      '<option>Carbon Offsetting</option>'+
+      '<option>Other</option>'+
+    '</select>'+
+    '<button type="button" onclick="this.closest(\'[data-idx]\').remove()" style="background:none;border:none;color:var(--text-tertiary);font-size:12px;cursor:pointer;text-align:left;padding:2px 0;">Remove</button>'+
+    '</div>';
+  list.appendChild(row);
+}
+
+function getPartners(){
+  var rows=document.querySelectorAll('#partners-list [data-idx]');
+  var out=[];
+  rows.forEach(function(r){
+    var name=r.querySelector('input').value.trim();
+    var cat=r.querySelector('select').value;
+    if(name)out.push({name:name,category:cat||null});
+  });
+  return out.length?JSON.stringify(out):null;
+}
+
 document.addEventListener('input',function(e){
   if(['ev-att','en-hrs','en-sqft','cat-meals','w-land','w-rec','w-comp','w-kg','w-div','mat-pages','t-dist','t-long-dist','t-fdist'].indexOf(e.target.id)>-1)
     updateRatingPreview();
@@ -624,7 +665,8 @@ async function saveEventToBackend(evt){
         rating:evt.rating?evt.rating.label:null,
         what_worked_well:evt.qualGood,what_to_improve:evt.qualImprove,
         sustainability_initiatives:document.getElementById('q-initiatives').value||null,
-        sdgs:getSDGs()||null
+        sdgs:getSDGs()||null,
+        event_partners:getPartners()
       })
     });
     if(res.ok){showToast('Event saved ✓');loadLiveStats();}
