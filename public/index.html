@@ -365,16 +365,8 @@
 
   <div class="card t-materials">
     <div class="card-label">📦 Materials + swag</div>
-    <div class="fg fg3">
+    <div class="fg fg2" style="margin-bottom:10px;">
       <div class="f"><label class="fl">Pages printed</label><input type="number" id="mat-pages" min="0" placeholder="0"></div>
-      <div class="f"><label class="fl">Swag / giveaways</label>
-        <select id="mat-swag">
-          <option value="0">None / digital only</option>
-          <option value="0.3">Sustainable items</option>
-          <option value="1.2">Mixed materials</option>
-          <option value="3">Standard promo items</option>
-        </select>
-      </div>
       <div class="f"><label class="fl">Signage</label>
         <select id="mat-sign">
           <option value="0">Borrowed / reused banners</option>
@@ -382,6 +374,34 @@
           <option value="0.5">New print (kept for reuse)</option>
           <option value="2">New print (single use)</option>
         </select>
+      </div>
+    </div>
+
+    <div class="f" style="margin-bottom:10px;">
+      <label class="fl">Swag / giveaways category</label>
+      <select id="mat-swag">
+        <option value="0">None / digital only</option>
+        <option value="0.3">Sustainable items</option>
+        <option value="1.2">Mixed materials</option>
+        <option value="3">Standard promo items</option>
+      </select>
+    </div>
+    <div class="f" style="margin-bottom:10px;">
+      <label class="fl">What did you give away? <span style="color:var(--text-tertiary);font-weight:400;">(optional)</span></label>
+      <textarea id="mat-swag-desc" placeholder="e.g. Reusable tote bags, seed packets, stickers, branded water bottles…" rows="2"></textarea>
+    </div>
+
+    <div class="f" style="margin-bottom:6px;">
+      <label class="fl">Did your event sell a product?</label>
+      <select id="mat-sold-yn" onchange="document.getElementById('mat-sold-detail').style.display=this.value==='yes'?'':'none'">
+        <option value="no">No</option>
+        <option value="yes">Yes</option>
+      </select>
+    </div>
+    <div id="mat-sold-detail" style="display:none;">
+      <div class="f">
+        <label class="fl">What was sold?</label>
+        <textarea id="mat-sold-desc" placeholder="e.g. Printed zines, merchandise, food/drink, branded apparel…" rows="2"></textarea>
       </div>
     </div>
   </div>
@@ -687,6 +707,8 @@ async function saveEventToBackend(evt){
         portions:v('cat-meals'),sourcing:sv('cat-src'),packaging:sv('cat-pack'),
         landfill_bags:v('w-land'),recycling_bags:v('w-rec'),compost_bags:v('w-comp'),
         pages_printed:v('mat-pages'),swag_type:sv('mat-swag'),signage_category:sv('mat-sign'),
+        swag_description:document.getElementById('mat-swag-desc').value||null,
+        products_sold:sv('mat-sold-yn')==='yes'?(document.getElementById('mat-sold-desc').value||null):null,
         total_co2e_kg:evt.co2.total,per_attendee_co2e_kg:evt.perAtt,
         travel_co2_kg:evt.co2.travel,energy_co2_kg:evt.co2.energy,
         catering_co2_kg:evt.co2.catering,waste_co2_kg:evt.co2.waste,
