@@ -165,7 +165,7 @@ All CO2e calculations are performed client-side in `index.html` before submissio
 | Car (USA) | 0.191 | kg CO2e / km / person | EPA GHG Emission Factors Hub 2025 — Passenger Car |
 | Flight (international) | 0.255 | kg CO2e / km / person | DEFRA 2023 (UK) |
 | Train — USA national avg | 0.071 | kg CO2e / km / person | EPA GHG Emission Factors Hub 2025 — Inter-City Rail |
-| Train — BC, Canada | 0.032 | kg CO2e / km / person | Environment and Climate Change Canada 2026 |
+| Train — BC, Canada (VIA Rail through Rockies) | 0.20 | kg CO2e / km / person | VIA Rail long-distance diesel service; elevated due to low occupancy on Canadian routes |
 | Local transit (USA avg) | 0.062 | kg CO2e / km / person | EPA 2025 avg of: Bus 0.044, Commuter Rail 0.083, Transit Rail 0.058 |
 | Local transit — BC, Canada | 0.008 | kg CO2e / km / person | Derived from TransLink Climate Action per-trip emissions data (2023) and renewable diesel transition figures (2024), converted to per-km using estimated 8 km avg trip distance |
 

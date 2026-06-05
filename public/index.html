@@ -457,7 +457,7 @@
         <tr><td>Travel — car (USA)</td><td>kg CO2e / km / person</td><td>0.191</td><td>EPA GHG Emission Factors Hub 2025 — Passenger Car (USA)</td></tr>
         <tr><td>Travel — flight (international)</td><td>kg CO2e / km / person</td><td>0.255</td><td>DEFRA 2023 (UK)</td></tr>
         <tr><td>Travel — train (USA national avg)</td><td>kg CO2e / km / person</td><td>0.071</td><td>EPA GHG Emission Factors Hub 2025 — Inter-City Rail (USA)</td></tr>
-        <tr><td>Travel — train (BC, Canada)</td><td>kg CO2e / km / person</td><td>0.032</td><td>Environment and Climate Change Canada 2026 (Canada)</td></tr>
+        <tr><td>Travel — train (BC, Canada — VIA Rail through Rockies)</td><td>kg CO2e / km / person</td><td>0.20</td><td>VIA Rail long-distance diesel service; elevated due to low occupancy on Canadian routes (Canada)</td></tr>
         <tr><td>Travel — local transit (USA avg: bus 0.044, commuter rail 0.083, transit rail 0.058)</td><td>kg CO2e / km / person</td><td>0.062</td><td>EPA GHG Emission Factors Hub 2025 (USA)</td></tr>
         <tr><td>Travel — local transit (BC, Canada)</td><td>kg CO2e / km / person</td><td>0.008</td><td>Derived from TransLink Climate Action per-trip emissions data (2023) and renewable diesel transition figures (2024), converted to per-km using estimated 8 km avg trip distance (Canada)</td></tr>
         <tr><td>Energy — WA/OR grid NWPP (USA)</td><td>kg CO2e / kWh</td><td>0.288</td><td>EPA eGRID 2024 (USA)</td></tr>
@@ -624,7 +624,7 @@ function getTransitFactors(){
   // PNW: hydro-dominant grid, electric light rail (Link, MAX, SkyTrain)
   // CA: cleaner grid than national avg
   // National: EPA 2025 averages
-  if(r==='bc')  return{train:0.032,transit:0.008};
+  if(r==='bc')  return{train:0.20,transit:0.008};
   return{train:0.071,transit:0.062};
 }
 
