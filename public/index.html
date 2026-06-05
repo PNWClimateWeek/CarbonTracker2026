@@ -367,25 +367,8 @@
     <div class="card-label">📦 Materials + swag</div>
     <div class="fg fg2" style="margin-bottom:10px;">
       <div class="f"><label class="fl">Pages printed</label><input type="number" id="mat-pages" min="0" placeholder="0"></div>
-      <div class="f"><label class="fl">Signage</label>
-        <select id="mat-sign">
-          <option value="0">Borrowed / reused banners</option>
-          <option value="0">Digital displays only</option>
-          <option value="0.5">New print (kept for reuse)</option>
-          <option value="2">New print (single use)</option>
-        </select>
-      </div>
     </div>
 
-    <div class="f" style="margin-bottom:10px;">
-      <label class="fl">Swag / giveaways category</label>
-      <select id="mat-swag">
-        <option value="0">None / digital only</option>
-        <option value="0.3">Sustainable items</option>
-        <option value="1.2">Mixed materials</option>
-        <option value="3">Standard promo items</option>
-      </select>
-    </div>
     <div class="f" style="margin-bottom:10px;">
       <label class="fl">What did you give away? <span style="color:var(--text-tertiary);font-weight:400;">(optional)</span></label>
       <textarea id="mat-swag-desc" placeholder="e.g. Reusable tote bags, seed packets, stickers, branded water bottles…" rows="2"></textarea>
@@ -588,7 +571,7 @@ function calcCO2(){
   var catEF={vegan:0.5,'mostly-plant':1.2,mixed:2.5,meatheavy:5.5};
   var cCO2=sv('cat-yn')==='yes'?v('cat-meals')*((catEF[sv('cat-type')]||0)+(parseFloat(sv('cat-pack'))||0)+(parseFloat(sv('cat-src'))||0)):0;
   var wCO2=calcWaste();
-  var mCO2=(v('mat-pages')*0.005)+(att*(parseFloat(sv('mat-swag'))||0))+(parseFloat(sv('mat-sign'))||0);
+  var mCO2=(v('mat-pages')*0.005);
   return{travel:tCO2,energy:eCO2,catering:cCO2,waste:wCO2,materials:mCO2,total:tCO2+eCO2+cCO2+wCO2+mCO2};
 }
 
