@@ -449,7 +449,7 @@
     <div class="card-label">Emissions by category</div>
     <div id="bar-chart"><div class="empty">Add an event to see the breakdown.</div></div>
     <hr>
-    <div class="meth" style="margin-top:.25rem;">Emission factors used in this calculator. Long-distance train and local transit use BC-specific factors for Vancouver BC events; US national averages otherwise.</div>
+    <div class="meth" style="margin-top:.25rem;">Emission factors adjust by attendee zip / postal code: Canadian postal codes (any letter prefix) use VIA Rail for train; BC postal codes (V-prefix) also use TransLink for local transit. US zips use EPA national averages.</div>
     <table class="meth-table">
       <thead><tr><th>Category</th><th>Factor</th><th>Value</th><th>Source</th></tr></thead>
       <tbody>
@@ -587,7 +587,7 @@ function calcCO2(){
   var localDist=v('t-dist')||8;
   var longDist=v('t-long-dist')||300;
   var flightDist=v('t-fdist')||500;
-  // Long-distance CO2 (Q1) — bus 0.044, train 0.083, car 0.191, flight 0.255 kg/km
+  // Long-distance CO2 (Q1) — bus 0.044, train region-adjusted, car 0.191, flight 0.255 kg/km
   var tCO2=0;
   var tf=getTransitFactors();
   tCO2+=att*(v('t-bus')/100)*longDist*2*0.044;
@@ -610,22 +610,22 @@ function updateRatingPreview(){}
 function getRegion(){
   var zip=(document.getElementById('ev-zip').value||'').trim().toUpperCase();
   var city=sv('ev-city');
-  if(city==='Vancouver BC'||zip.match(/^V[0-9]/))return'bc';
-  if(!zip)return'national';
+  // Canadian postal codes start with a letter (e.g. V6B, T2P, M5V)
+  var isCanada=/^[A-Z]/.test(zip);
+  var isBC=(city==='Vancouver BC'||/^V/.test(zip));
+  if(isBC) return'bc';         // BC: VIA Rail train + TransLink transit
+  if(isCanada) return'canada'; // Other Canada: VIA Rail train + national transit
+  if(!zip) return'national';
   var pre=parseInt(zip.substring(0,3),10);
-  // WA: 980-994, OR: 970-979 → PNW
   if((pre>=980&&pre<=994)||(pre>=970&&pre<=979))return'pnw';
   return'national';
 }
 
 function getTransitFactors(){
   var r=getRegion();
-  // Long-distance train, local transit — vary by grid/fleet region
-  // PNW: hydro-dominant grid, electric light rail (Link, MAX, SkyTrain)
-  // CA: cleaner grid than national avg
-  // National: EPA 2025 averages
-  if(r==='bc')  return{train:0.20,transit:0.008};
-  return{train:0.071,transit:0.062};
+  if(r==='bc')     return{train:0.20,  transit:0.008};
+  if(r==='canada') return{train:0.20,  transit:0.062};
+  return            {train:0.071, transit:0.062};
 }
 
 function toggleSDG(el){el.classList.toggle('sel');}
