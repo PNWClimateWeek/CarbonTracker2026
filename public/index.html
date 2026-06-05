@@ -441,7 +441,7 @@
     <div class="card-label">Emissions by category</div>
     <div id="bar-chart"><div class="empty">Add an event to see the breakdown.</div></div>
     <hr>
-    <div class="meth">Long-distance travel (Q1): bus 0.041 kg/km; car 0.244 kg/km; flight 0.255 kg/km. Train and local transit factors adjust by event region (zip/postal code): BC 0.032/0.018 kg/km; PNW (WA/OR) 0.046/0.028 kg/km; CA 0.068/0.042 kg/km; national avg 0.083/0.050 kg/km. PNW and BC factors reflect hydro-dominant grids and electrified transit fleets (Link, MAX, SkyTrain). Energy grid: WA/OR (NWPP eGrid) 0.288 kg CO2e/kWh (EPA eGRID 2024); BC 0.018 kg CO2e/kWh (Canada OBPS 2026); diesel generator 0.2 kg CO2e/kWh. Venue load 2W/sq ft. Catering: plant-based 0.5 kg/meal, mostly-plant 1.2, mixed 2.5, meat-heavy 5.5. Waste: 0.5 kg CO2e/kg landfill; bag count uses 12 kg/bag. Pages: 0.005 kg/page. Sources: EPA GHG Emission Factors Hub 2025, DEFRA 2023 (flight), EPA eGRID 2024, Environment and Climate Change Canada.</div>
+    <div class="meth">Long-distance travel (Q1): bus 0.041 kg/km; car 0.244 kg/km; flight 0.255 kg/km. Train and local transit factors adjust by event region (zip/postal code): BC 0.032/0.018 kg/km; PNW (WA/OR) 0.046/0.028 kg/km; CA 0.068/0.042 kg/km; national avg 0.083/0.050 kg/km. PNW and BC factors reflect hydro-dominant grids and electrified transit fleets (Link, MAX, SkyTrain). Energy grid: WA/OR (NWPP eGrid) 0.288 kg CO2e/kWh (EPA eGRID 2024); BC 0.018 kg CO2e/kWh (Canada OBPS 2026); diesel generator 0.2 kg CO2e/kWh. Venue load 2W/sq ft. Catering: plant-based 0.5 kg/meal, mostly-plant 1.2, mixed 2.5, meat-heavy 5.5. Waste: landfill 0.639 kg CO2e/kg (EPA Mixed MSW landfilled); recycling 0.099 kg CO2e/kg (EPA Mixed Recyclables recycled); compost 0.143 kg CO2e/kg (EPA Mixed Organics composted); bag count uses 12 kg/bag. Pages: 0.005 kg/page. Sources: EPA GHG Emission Factors Hub 2025, DEFRA 2023 (flight), EPA eGRID 2024, Environment and Climate Change Canada.</div>
   </div>
 
   <footer>PNW Climate Week · CO2 calculator for community event organizers in Tacoma, Bend, Seattle, Portland, Vancouver BC, and Bellingham. · Questions or feedback? <a href="mailto:hello@pnwclimateweek.org" style="color:var(--text-tertiary);">hello@pnwclimateweek.org</a> · <a href="/dashboard.html" style="color:var(--text-tertiary);text-decoration:none;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-tertiary)'">Team dashboard</a></footer>
@@ -545,8 +545,8 @@ function getRating(p){
 
 function calcWaste(){
   var kgO=v('w-kg'),divO=v('w-div');
-  if(kgO>0&&divO>0)return kgO*(1-divO/100)*0.5;
-  return v('w-land')*12*0.5;
+  if(kgO>0&&divO>0)return kgO*(1-divO/100)*0.639;
+  return (v('w-land')*12*0.639)+(v('w-rec')*12*0.099)+(v('w-comp')*12*0.143);
 }
 
 function calcCO2(){
