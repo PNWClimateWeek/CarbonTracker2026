@@ -454,7 +454,7 @@
       <thead><tr><th>Category</th><th>Factor</th><th>Value</th><th>Source</th></tr></thead>
       <tbody>
         <tr><td>Travel — bus (long distance)</td><td>kg CO2e / km / person</td><td>0.044</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
-        <tr><td>Travel — car</td><td>kg CO2e / km / person</td><td>0.244</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
+        <tr><td>Travel — car</td><td>kg CO2e / km / person</td><td>0.191</td><td>EPA GHG Emission Factors Hub 2025 — Passenger Car</td></tr>
         <tr><td>Travel — flight</td><td>kg CO2e / km / person</td><td>0.255</td><td>DEFRA 2023</td></tr>
         <tr><td>Travel — train (national avg)</td><td>kg CO2e / km / person</td><td>0.083</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
         <tr><td>Travel — train (PNW: WA/OR)</td><td>kg CO2e / km / person</td><td>0.046</td><td>EPA eGRID 2024 (NWPP grid scaling)</td></tr>
@@ -587,16 +587,16 @@ function calcCO2(){
   var localDist=v('t-dist')||8;
   var longDist=v('t-long-dist')||300;
   var flightDist=v('t-fdist')||500;
-  // Long-distance CO2 (Q1) — bus 0.044, train 0.083, car 0.244, flight 0.255 kg/km
+  // Long-distance CO2 (Q1) — bus 0.044, train 0.083, car 0.191, flight 0.255 kg/km
   var tCO2=0;
   var tf=getTransitFactors();
   tCO2+=att*(v('t-bus')/100)*longDist*2*0.044;
   tCO2+=att*(v('t-train')/100)*longDist*2*tf.train;
-  tCO2+=att*(v('t-car-long')/100)*longDist*2*0.244;
+  tCO2+=att*(v('t-car-long')/100)*longDist*2*0.191;
   tCO2+=att*(v('t-flight')/100)*flightDist*2*0.255;
-  // Local CO2 (Q2) — walk/bike 0, transit region-adjusted, car 0.244 kg/km
+  // Local CO2 (Q2) — walk/bike 0, transit region-adjusted, car 0.191 kg/km
   tCO2+=att*(v('t-transit')/100)*localDist*2*tf.transit;
-  tCO2+=att*(v('t-car-local')/100)*localDist*2*0.244;
+  tCO2+=att*(v('t-car-local')/100)*localDist*2*0.191;
   var eCO2=(v('en-sqft')*2/1000)*v('en-hrs')*parseFloat(sv('en-src'));
   var catEF={vegan:0.5,vegetarian:1.5,mixed:2.5,meatheavy:5.5};
   var cCO2=sv('cat-yn')==='yes'?v('cat-meals')*((catEF[sv('cat-type')]||0)+(parseFloat(sv('cat-pack'))||0)+(parseFloat(sv('cat-src'))||0)):0;
