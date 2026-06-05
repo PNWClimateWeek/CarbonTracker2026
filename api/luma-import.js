@@ -41,13 +41,19 @@ module.exports = async function handler(req, res) {
       ? (new Date(ev.end_at) - new Date(ev.start_at)) / 3600000
       : null;
 
+    const geo = ev.geo_address_info || {};
+    // Try multiple fields — Luma doesn't consistently document postal_code
+    const postal = geo.postal_code || geo.zip_code || geo.zip ||
+      (geo.full_address || '').match(/\b([A-Z]\d[A-Z]\s?\d[A-Z]\d|\d{5}(-\d{4})?)\b/i)?.[0] || null;
+
     return res.status(200).json({
       event_name:     ev.name || null,
       date:           ev.start_at ? ev.start_at.slice(0, 10) : null,
-      city:           matchCity(ev.geo_address_info?.city),
-      venue_name:     ev.geo_address_info?.description || ev.geo_address_info?.full_address || null,
+      city:           matchCity(geo.city),
+      venue_name:     geo.description || geo.full_address || null,
       duration_hours: durationHours,
       attendees:      ev.ticket_count?.sold || ev.guest_count || null,
+      postal_code:    postal,
     });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch from Luma', detail: err.message });

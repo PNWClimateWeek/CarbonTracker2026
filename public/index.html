@@ -248,6 +248,7 @@
         <select id="ev-city" onchange="autoSetEnergy()"><option>Tacoma</option><option>Bend</option><option>Seattle</option><option>Portland</option><option>Vancouver BC</option><option>Bellingham</option></select>
       </div>
       <div class="f"><label class="fl">Host / organizer</label><input type="text" id="ev-host" placeholder="Name or org"></div>
+      <div class="f"><label class="fl">Event zip / postal code</label><input type="text" id="ev-zip" placeholder="e.g. 98101 or V6B 1A1" oninput="updateRatingPreview()"></div>
     </div>
     <div class="fg fg3">
       <div class="f"><label class="fl">Total attendees *</label><input type="number" id="ev-att" min="0" placeholder="0"></div>
@@ -440,7 +441,7 @@
     <div class="card-label">Emissions by category</div>
     <div id="bar-chart"><div class="empty">Add an event to see the breakdown.</div></div>
     <hr>
-    <div class="meth">Long-distance travel (Q1): bus 0.041 kg/km; train 0.083 kg/km; car 0.244 kg/km; flight 0.255 kg/km. Local travel (Q2): walk/bike 0 kg/km; transit 0.050 kg/km (avg of EPA transit bus 0.041 and transit rail 0.060); car 0.244 kg/km. Note: EPA intercity rail reflects US national grid average — actual PNW rail emissions (Amtrak Cascades, BC Rail) are lower due to the region's hydro-heavy grid. Energy grid: WA/OR (NWPP eGrid) 0.288 kg CO2e/kWh (EPA eGRID 2024); BC 0.018 kg CO2e/kWh (Canada OBPS 2026); diesel generator 0.2 kg CO2e/kWh. Venue load 2W/sq ft. Catering: plant-based 0.5 kg/meal, mostly-plant 1.2, mixed 2.5, meat-heavy 5.5. Waste: 0.5 kg CO2e/kg landfill; bag count uses 12 kg/bag. Pages: 0.005 kg/page. Sources: EPA GHG Emission Factors Hub 2025, DEFRA 2023 (flight), EPA eGRID 2024, Environment and Climate Change Canada.</div>
+    <div class="meth">Long-distance travel (Q1): bus 0.041 kg/km; car 0.244 kg/km; flight 0.255 kg/km. Train and local transit factors adjust by event region (zip/postal code): BC 0.032/0.018 kg/km; PNW (WA/OR) 0.046/0.028 kg/km; CA 0.068/0.042 kg/km; national avg 0.083/0.050 kg/km. PNW and BC factors reflect hydro-dominant grids and electrified transit fleets (Link, MAX, SkyTrain). Energy grid: WA/OR (NWPP eGrid) 0.288 kg CO2e/kWh (EPA eGRID 2024); BC 0.018 kg CO2e/kWh (Canada OBPS 2026); diesel generator 0.2 kg CO2e/kWh. Venue load 2W/sq ft. Catering: plant-based 0.5 kg/meal, mostly-plant 1.2, mixed 2.5, meat-heavy 5.5. Waste: 0.5 kg CO2e/kg landfill; bag count uses 12 kg/bag. Pages: 0.005 kg/page. Sources: EPA GHG Emission Factors Hub 2025, DEFRA 2023 (flight), EPA eGRID 2024, Environment and Climate Change Canada.</div>
   </div>
 
   <footer>PNW Climate Week · CO2 calculator for community event organizers in Tacoma, Bend, Seattle, Portland, Vancouver BC, and Bellingham. · Questions or feedback? <a href="mailto:hello@pnwclimateweek.org" style="color:var(--text-tertiary);">hello@pnwclimateweek.org</a> · <a href="/dashboard.html" style="color:var(--text-tertiary);text-decoration:none;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-tertiary)'">Team dashboard</a></footer>
@@ -555,12 +556,13 @@ function calcCO2(){
   var flightDist=v('t-fdist')||500;
   // Long-distance CO2 (Q1) — bus 0.068, train 0.041, car 0.21, flight 0.255 kg/km
   var tCO2=0;
+  var tf=getTransitFactors();
   tCO2+=att*(v('t-bus')/100)*longDist*2*0.041;
-  tCO2+=att*(v('t-train')/100)*longDist*2*0.083;
+  tCO2+=att*(v('t-train')/100)*longDist*2*tf.train;
   tCO2+=att*(v('t-car-long')/100)*longDist*2*0.244;
   tCO2+=att*(v('t-flight')/100)*flightDist*2*0.255;
-  // Local CO2 (Q2) — walk/bike 0, transit 0.050, car 0.244 kg/km
-  tCO2+=att*(v('t-transit')/100)*localDist*2*0.050;
+  // Local CO2 (Q2) — walk/bike 0, transit region-adjusted, car 0.244 kg/km
+  tCO2+=att*(v('t-transit')/100)*localDist*2*tf.transit;
   tCO2+=att*(v('t-car-local')/100)*localDist*2*0.244;
   var eCO2=(v('en-sqft')*2/1000)*v('en-hrs')*parseFloat(sv('en-src'));
   var catEF={vegan:0.5,'mostly-plant':1.2,mixed:2.5,meatheavy:5.5};
@@ -571,6 +573,32 @@ function calcCO2(){
 }
 
 function updateRatingPreview(){}
+
+function getRegion(){
+  var zip=(document.getElementById('ev-zip').value||'').trim().toUpperCase();
+  var city=sv('ev-city');
+  if(city==='Vancouver BC'||zip.match(/^V[0-9]/))return'bc';
+  if(!zip)return'national';
+  var pre=parseInt(zip.substring(0,3),10);
+  // WA: 980-994, OR: 970-979 → PNW
+  if((pre>=980&&pre<=994)||(pre>=970&&pre<=979))return'pnw';
+  // CA: 900-961
+  if(pre>=900&&pre<=961)return'ca';
+  return'national';
+}
+
+function getTransitFactors(){
+  var r=getRegion();
+  // Long-distance train, local transit — vary by grid/fleet region
+  // PNW: hydro-dominant grid, electric light rail (Link, MAX, SkyTrain)
+  // CA: cleaner grid than national avg
+  // National: EPA 2025 averages
+  if(r==='pnw') return{train:0.046,transit:0.028};
+  if(r==='bc')  return{train:0.032,transit:0.018};
+  if(r==='ca')  return{train:0.068,transit:0.042};
+  return{train:0.083,transit:0.050};
+}
+
 function toggleSDG(el){el.classList.toggle('sel');}
 function getSDGs(){return Array.from(document.querySelectorAll('.sdg-chip.sel')).map(function(e){return e.dataset.sdg;}).join(',');}
 
@@ -736,9 +764,10 @@ async function importFromLuma(){
     if(d.venue_name)document.getElementById('ev-venue').value=d.venue_name;
     if(d.attendees)document.getElementById('ev-att').value=d.attendees;
     if(d.duration_hours)document.getElementById('en-hrs').value=d.duration_hours.toFixed(1);
+    if(d.postal_code)document.getElementById('ev-zip').value=d.postal_code;
     autoSetEnergy();updateRatingPreview();
     statusEl.style.color='var(--accent)';
-    statusEl.textContent='Imported: '+(d.event_name||'event')+(d.attendees?' · '+d.attendees+' attendees':'')+(d.city?' · '+d.city:'');
+    statusEl.textContent='Imported: '+(d.event_name||'event')+(d.attendees?' · '+d.attendees+' attendees':'')+(d.city?' · '+d.city:'')+(d.postal_code?' · '+d.postal_code:'');
   }catch(e){
     statusEl.style.color='var(--red-text,#A32D2D)';
     statusEl.textContent='Could not reach import service';
