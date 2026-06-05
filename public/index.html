@@ -320,6 +320,7 @@
       </div>
       <div class="f hidden" id="cat-type-wrap"><label class="fl">Food type</label>
         <select id="cat-type">
+          <option value="rescue">Rescue / surplus food</option>
           <option value="vegan">Vegan</option>
           <option value="vegetarian">Vegetarian</option>
           <option value="mixed">Mixed</option>
@@ -327,24 +328,6 @@
         </select>
       </div>
       <div class="f hidden" id="cat-meals-wrap"><label class="fl">Portions served</label><input type="number" id="cat-meals" min="0" placeholder="0"></div>
-    </div>
-    <div class="hidden" id="cat-extra">
-      <div class="fg fg2">
-        <div class="f"><label class="fl">Sourcing</label>
-          <select id="cat-src">
-            <option value="0">Local / regional (BC)</option>
-            <option value="0.1">Mix of local + imported</option>
-            <option value="0.2">Primarily imported</option>
-          </select>
-        </div>
-        <div class="f"><label class="fl">Packaging</label>
-          <select id="cat-pack">
-            <option value="0">Reusable / compostable</option>
-            <option value="0.05">Mix</option>
-            <option value="0.15">Single-use plastic</option>
-          </select>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -458,6 +441,7 @@
         <tr><td>Energy — BC grid / BC Hydro (Canada)</td><td>kg CO2e / kWh</td><td>0.018</td><td>Environment and Climate Change Canada / OBPS 2026 (Canada)</td></tr>
         <tr><td>Energy — diesel generator (USA)</td><td>kg CO2e / kWh</td><td>0.200</td><td>EPA GHG Emission Factors Hub 2025 (USA)</td></tr>
         <tr><td>Energy — venue load assumed (international)</td><td>W / sq ft</td><td>2</td><td>ASHRAE 90.1 typical assembly occupancy</td></tr>
+        <tr><td>Catering — rescue / surplus food (international)</td><td>kg CO2e / meal</td><td>0.1</td><td>Transport &amp; handling only — production emissions attributed to original supply chain per consequential accounting (international)</td></tr>
         <tr><td>Catering — vegan (international)</td><td>kg CO2e / meal</td><td>0.5</td><td>Poore &amp; Nemecek (2018), Science</td></tr>
         <tr><td>Catering — vegetarian (international)</td><td>kg CO2e / meal</td><td>1.5</td><td>Poore &amp; Nemecek (2018), Science</td></tr>
         <tr><td>Catering — mixed (international)</td><td>kg CO2e / meal</td><td>2.5</td><td>Poore &amp; Nemecek (2018), Science</td></tr>
@@ -592,8 +576,8 @@ function calcCO2(){
   tCO2+=att*(v('t-transit')/100)*localDist*2*tf.transit;
   tCO2+=att*(v('t-car-local')/100)*localDist*2*0.191;
   var eCO2=(v('en-sqft')*2/1000)*v('en-hrs')*parseFloat(sv('en-src'));
-  var catEF={vegan:0.5,vegetarian:1.5,mixed:2.5,meatheavy:5.5};
-  var cCO2=sv('cat-yn')==='yes'?v('cat-meals')*((catEF[sv('cat-type')]||0)+(parseFloat(sv('cat-pack'))||0)+(parseFloat(sv('cat-src'))||0)):0;
+  var catEF={rescue:0.1,vegan:0.5,vegetarian:1.5,mixed:2.5,meatheavy:5.5};
+  var cCO2=sv('cat-yn')==='yes'?v('cat-meals')*(catEF[sv('cat-type')]||0):0;
   var wCO2=calcWaste();
   var mCO2=(v('mat-pages')*0.005);
   return{travel:tCO2,energy:eCO2,catering:cCO2,waste:wCO2,materials:mCO2,total:tCO2+eCO2+cCO2+wCO2+mCO2};
@@ -708,7 +692,7 @@ async function saveEventToBackend(evt){
         luma_event_id:document.getElementById('luma-event-id').value||null,
         duration_hours:v('en-hrs'),venue_size_sqft:v('en-sqft'),energy_source:sv('en-src'),
         catering_provided:sv('cat-yn')==='yes',food_type:sv('cat-type'),
-        portions:v('cat-meals'),sourcing:sv('cat-src'),packaging:sv('cat-pack'),
+        portions:v('cat-meals'),sourcing:null,packaging:null,
         landfill_bags:v('w-land'),recycling_bags:v('w-rec'),compost_bags:v('w-comp'),
         pages_printed:v('mat-pages'),swag_type:sv('mat-swag'),signage_category:sv('mat-sign'),
         swag_description:document.getElementById('mat-swag-desc').value||null,

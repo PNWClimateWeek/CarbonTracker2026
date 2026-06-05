@@ -212,10 +212,13 @@ Formula: `energy_co2 = venue_size_sqft × 2W × duration_hours / 1000 × grid_ef
 
 | Type | EF | Unit | Source |
 |---|---|---|---|
+| Rescue / surplus food | 0.1 | kg CO2e / meal | Transport & handling only — production emissions attributed to original supply chain per consequential accounting |
 | Vegan | 0.5 | kg CO2e / meal | Poore & Nemecek (2018), *Science* |
 | Vegetarian | 1.5 | kg CO2e / meal | Poore & Nemecek (2018), *Science* |
 | Mixed | 2.5 | kg CO2e / meal | Poore & Nemecek (2018), *Science* |
 | Meat-heavy | 5.5 | kg CO2e / meal | Poore & Nemecek (2018), *Science* |
+
+Sourcing and packaging fields removed — no defensible per-meal EF adders exist in published literature.
 
 Formula: `catering_co2 = portions × food_ef`
 
