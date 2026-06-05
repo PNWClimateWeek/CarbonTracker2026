@@ -459,11 +459,9 @@
         <tr><td>Travel — train (national avg)</td><td>kg CO2e / km / person</td><td>0.083</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
         <tr><td>Travel — train (PNW: WA/OR)</td><td>kg CO2e / km / person</td><td>0.046</td><td>EPA eGRID 2024 (NWPP grid scaling)</td></tr>
         <tr><td>Travel — train (BC)</td><td>kg CO2e / km / person</td><td>0.032</td><td>Environment and Climate Change Canada 2026</td></tr>
-        <tr><td>Travel — train (CA)</td><td>kg CO2e / km / person</td><td>0.068</td><td>EPA GHG Emission Factors Hub 2025 (CAMX grid)</td></tr>
         <tr><td>Travel — local transit (national avg)</td><td>kg CO2e / km / person</td><td>0.050</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
         <tr><td>Travel — local transit (PNW: WA/OR)</td><td>kg CO2e / km / person</td><td>0.028</td><td>EPA eGRID 2024 (NWPP grid scaling)</td></tr>
         <tr><td>Travel — local transit (BC)</td><td>kg CO2e / km / person</td><td>0.018</td><td>Environment and Climate Change Canada 2026</td></tr>
-        <tr><td>Travel — local transit (CA)</td><td>kg CO2e / km / person</td><td>0.042</td><td>EPA GHG Emission Factors Hub 2025 (CAMX grid)</td></tr>
         <tr><td>Energy — WA/OR grid (NWPP)</td><td>kg CO2e / kWh</td><td>0.288</td><td>EPA eGRID 2024</td></tr>
         <tr><td>Energy — BC grid (BC Hydro)</td><td>kg CO2e / kWh</td><td>0.018</td><td>Environment and Climate Change Canada / OBPS 2026</td></tr>
         <tr><td>Energy — diesel generator</td><td>kg CO2e / kWh</td><td>0.200</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
@@ -619,8 +617,6 @@ function getRegion(){
   var pre=parseInt(zip.substring(0,3),10);
   // WA: 980-994, OR: 970-979 → PNW
   if((pre>=980&&pre<=994)||(pre>=970&&pre<=979))return'pnw';
-  // CA: 900-961
-  if(pre>=900&&pre<=961)return'ca';
   return'national';
 }
 
@@ -632,7 +628,6 @@ function getTransitFactors(){
   // National: EPA 2025 averages
   if(r==='pnw') return{train:0.046,transit:0.028};
   if(r==='bc')  return{train:0.032,transit:0.018};
-  if(r==='ca')  return{train:0.068,transit:0.042};
   return{train:0.083,transit:0.050};
 }
 
