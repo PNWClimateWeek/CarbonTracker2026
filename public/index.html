@@ -449,19 +449,17 @@
     <div class="card-label">Emissions by category</div>
     <div id="bar-chart"><div class="empty">Add an event to see the breakdown.</div></div>
     <hr>
-    <div class="meth" style="margin-top:.25rem;">Emission factors used in this calculator. Train and local transit adjust by event zip/postal code region.</div>
+    <div class="meth" style="margin-top:.25rem;">Emission factors used in this calculator. Long-distance train adjusts by event zip/postal code region.</div>
     <table class="meth-table">
       <thead><tr><th>Category</th><th>Factor</th><th>Value</th><th>Source</th></tr></thead>
       <tbody>
-        <tr><td>Travel — bus (long distance)</td><td>kg CO2e / km / person</td><td>0.041</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
+        <tr><td>Travel — bus (long distance)</td><td>kg CO2e / km / person</td><td>0.044</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
         <tr><td>Travel — car</td><td>kg CO2e / km / person</td><td>0.244</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
         <tr><td>Travel — flight</td><td>kg CO2e / km / person</td><td>0.255</td><td>DEFRA 2023</td></tr>
         <tr><td>Travel — train (national avg)</td><td>kg CO2e / km / person</td><td>0.083</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
         <tr><td>Travel — train (PNW: WA/OR)</td><td>kg CO2e / km / person</td><td>0.046</td><td>EPA eGRID 2024 (NWPP grid scaling)</td></tr>
         <tr><td>Travel — train (BC)</td><td>kg CO2e / km / person</td><td>0.032</td><td>Environment and Climate Change Canada 2026</td></tr>
-        <tr><td>Travel — local transit (national avg)</td><td>kg CO2e / km / person</td><td>0.050</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
-        <tr><td>Travel — local transit (PNW: WA/OR)</td><td>kg CO2e / km / person</td><td>0.028</td><td>EPA eGRID 2024 (NWPP grid scaling)</td></tr>
-        <tr><td>Travel — local transit (BC)</td><td>kg CO2e / km / person</td><td>0.018</td><td>Environment and Climate Change Canada 2026</td></tr>
+        <tr><td>Travel — local transit (avg: bus 0.044, commuter rail 0.083, transit rail 0.058)</td><td>kg CO2e / km / person</td><td>0.062</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
         <tr><td>Energy — WA/OR grid (NWPP)</td><td>kg CO2e / kWh</td><td>0.288</td><td>EPA eGRID 2024</td></tr>
         <tr><td>Energy — BC grid (BC Hydro)</td><td>kg CO2e / kWh</td><td>0.018</td><td>Environment and Climate Change Canada / OBPS 2026</td></tr>
         <tr><td>Energy — diesel generator</td><td>kg CO2e / kWh</td><td>0.200</td><td>EPA GHG Emission Factors Hub 2025</td></tr>
@@ -589,10 +587,10 @@ function calcCO2(){
   var localDist=v('t-dist')||8;
   var longDist=v('t-long-dist')||300;
   var flightDist=v('t-fdist')||500;
-  // Long-distance CO2 (Q1) — bus 0.068, train 0.041, car 0.21, flight 0.255 kg/km
+  // Long-distance CO2 (Q1) — bus 0.044, train 0.083, car 0.244, flight 0.255 kg/km
   var tCO2=0;
   var tf=getTransitFactors();
-  tCO2+=att*(v('t-bus')/100)*longDist*2*0.041;
+  tCO2+=att*(v('t-bus')/100)*longDist*2*0.044;
   tCO2+=att*(v('t-train')/100)*longDist*2*tf.train;
   tCO2+=att*(v('t-car-long')/100)*longDist*2*0.244;
   tCO2+=att*(v('t-flight')/100)*flightDist*2*0.255;
@@ -626,9 +624,9 @@ function getTransitFactors(){
   // PNW: hydro-dominant grid, electric light rail (Link, MAX, SkyTrain)
   // CA: cleaner grid than national avg
   // National: EPA 2025 averages
-  if(r==='pnw') return{train:0.046,transit:0.028};
-  if(r==='bc')  return{train:0.032,transit:0.018};
-  return{train:0.083,transit:0.050};
+  if(r==='pnw') return{train:0.046,transit:0.062};
+  if(r==='bc')  return{train:0.032,transit:0.062};
+  return{train:0.083,transit:0.062};
 }
 
 function toggleSDG(el){el.classList.toggle('sel');}
