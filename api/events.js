@@ -82,7 +82,7 @@ async function createEvent(req, res, pool) {
       rating, what_worked_well, what_to_improve,
       submitter_name, submitter_email,
       sustainability_initiatives, sdgs, event_partners,
-      swag_description, products_sold
+      swag_description, products_sold, luma_event_id
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,
       $8,$9,$10,$11,$12,$13,
@@ -93,7 +93,7 @@ async function createEvent(req, res, pool) {
       $33,$34,$35,
       $36,$37,$38,$39,$40,$41,$42,
       $43,$44,$45,
-      $46,$47,$48,$49,$50,$51,$52
+      $46,$47,$48,$49,$50,$51,$52,$53
     ) RETURNING *`,
     [
       d.event_name, d.event_date || null, d.city || null, d.organizer || null,
@@ -116,7 +116,7 @@ async function createEvent(req, res, pool) {
       d.submitter_name || null, d.submitter_email || null,
       d.sustainability_initiatives || null, d.sdgs || null,
       d.event_partners || null,
-      d.swag_description || null, d.products_sold || null,
+      d.swag_description || null, d.products_sold || null, d.luma_event_id || null,
     ]
   );
 

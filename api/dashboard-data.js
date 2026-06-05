@@ -51,6 +51,7 @@ module.exports = async function handler(req, res) {
         venue_name, event_type, per_attendee_co2e_kg, total_co2e_kg,
         travel_co2_kg, energy_co2_kg, catering_co2_kg, waste_co2_kg, materials_co2_kg,
         rating, submitter_name, submitter_email, what_worked_well, what_to_improve,
+        luma_event_id, avg_long_dist_km, avg_local_dist_km, attendee_regions,
         created_at
       FROM events
       ORDER BY per_attendee_co2e_kg ASC

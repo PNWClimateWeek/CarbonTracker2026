@@ -231,6 +231,7 @@
     <div class="note">Paste a Luma event URL to auto-fill event name, date, city, venue, attendees, and duration.</div>
     <div class="fg fg2" style="align-items:flex-end;">
       <div class="f"><label class="fl">Luma event URL</label><input type="text" id="luma-url" placeholder="https://lu.ma/your-event"></div>
+      <input type="hidden" id="luma-event-id">
       <div><button class="btn-primary" style="padding:8px 18px;font-size:13px;font-weight:500;" onclick="importFromLuma()">Import</button></div>
     </div>
     <div id="luma-status" style="font-size:12px;margin-top:8px;display:none;"></div>
@@ -282,10 +283,6 @@
     <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
       <span class="t-badge under" id="t-badge-long">0 / 100%</span>
     </div>
-    <div class="fg fg2" style="margin-bottom:1rem;">
-      <div class="f"><label class="fl">Avg long-distance trip (km one way)</label><input type="number" id="t-long-dist" value="300" min="0" oninput="updateRatingPreview()"></div>
-      <div class="f"><label class="fl">Avg flight distance (km one way)</label><input type="number" id="t-fdist" value="500" min="0" oninput="updateRatingPreview()"></div>
-    </div>
 
     <hr style="border:none;border-top:0.5px solid var(--border);margin:0 0 1rem;">
 
@@ -297,9 +294,6 @@
     </div>
     <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
       <span class="t-badge under" id="t-badge-local">0 / 100%</span>
-    </div>
-    <div class="fg fg2">
-      <div class="f"><label class="fl">Avg local trip distance (km one way)</label><input type="number" id="t-dist" value="8" min="0" oninput="updateRatingPreview()"></div>
     </div>
   </div>
 
@@ -584,9 +578,9 @@ function calcWaste(){
 
 function calcCO2(){
   var att=v('ev-att')||1;
-  var localDist=v('t-dist')||8;
-  var longDist=v('t-long-dist')||300;
-  var flightDist=v('t-fdist')||500;
+  var localDist=8;
+  var longDist=300;
+  var flightDist=500;
   // Long-distance CO2 (Q1) — bus 0.044, train region-adjusted, car 0.191, flight 0.255 kg/km
   var tCO2=0;
   var tf=getTransitFactors();
@@ -666,7 +660,7 @@ function getPartners(){
 }
 
 document.addEventListener('input',function(e){
-  if(['ev-att','en-hrs','en-sqft','cat-meals','w-land','w-rec','w-comp','w-kg','w-div','mat-pages','t-dist','t-long-dist','t-fdist'].indexOf(e.target.id)>-1)
+  if(['ev-att','en-hrs','en-sqft','cat-meals','w-land','w-rec','w-comp','w-kg','w-div','mat-pages'].indexOf(e.target.id)>-1)
     updateRatingPreview();
 });
 document.addEventListener('change',function(){updateRatingPreview();});
@@ -707,10 +701,11 @@ async function saveEventToBackend(evt){
         submitter_name:evt.submitterName||null,submitter_email:evt.submitterEmail||null,
         travel_local_pct:v('t-local'),travel_bus_pct:v('t-bus'),
         travel_train_pct:v('t-train'),travel_car_long_pct:v('t-car-long'),
-        travel_flight_pct:v('t-flight'),long_distance_km:v('t-long-dist'),
+        travel_flight_pct:v('t-flight'),long_distance_km:300,
         travel_walk_bike_pct:v('t-walk'),travel_transit_pct:v('t-transit'),
-        travel_car_local_pct:v('t-car-local'),local_distance_km:v('t-dist'),
-        flight_distance_km:v('t-fdist'),
+        travel_car_local_pct:v('t-car-local'),local_distance_km:8,
+        flight_distance_km:500,
+        luma_event_id:document.getElementById('luma-event-id').value||null,
         duration_hours:v('en-hrs'),venue_size_sqft:v('en-sqft'),energy_source:sv('en-src'),
         catering_provided:sv('cat-yn')==='yes',food_type:sv('cat-type'),
         portions:v('cat-meals'),sourcing:sv('cat-src'),packaging:sv('cat-pack'),
@@ -781,6 +776,7 @@ function renderMetrics(){
 async function importFromLuma(){
   var url=document.getElementById('luma-url').value.trim();
   if(!url)return;
+  try{var eid=new URL(url).pathname.replace(/^\//,'').split('/')[0];document.getElementById('luma-event-id').value=eid||'';}catch(e){};
   var statusEl=document.getElementById('luma-status');
   statusEl.style.display='';
   statusEl.style.color='var(--text-tertiary)';

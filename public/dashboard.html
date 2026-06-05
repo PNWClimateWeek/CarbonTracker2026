@@ -158,6 +158,26 @@ function render(d){
   html+='<div class="card"><div class="card-title">Ratings distribution</div>'+
     RATS.map(function(r){return bar(r,rm[r]||0,maxR,RCOLS[r],' events');}).join('')+'</div>';
 
+  // Travel distance section — events with Luma data
+  var lumaEvents=(d.events||[]).filter(function(e){return e.luma_event_id;});
+  if(lumaEvents.length){
+    var distRows=lumaEvents.map(function(e){
+      var regions='—';
+      if(e.attendee_regions){try{var r=JSON.parse(e.attendee_regions);regions=Object.entries(r).map(function(kv){return kv[1]+' '+kv[0];}).join(', ');}catch(x){}}
+      return '<tr>'+
+        '<td><strong>'+(e.event_name||'—')+'</strong></td>'+
+        '<td>'+(e.avg_long_dist_km!=null?Math.round(e.avg_long_dist_km)+' km':'—')+'</td>'+
+        '<td>'+(e.avg_local_dist_km!=null?Math.round(e.avg_local_dist_km)+' km':'—')+'</td>'+
+        '<td style="white-space:normal;">'+regions+'</td>'+
+        '<td><button class="btn" style="font-size:11px;padding:4px 10px;" onclick="loadTravelData(\''+e.luma_event_id+'\',this)">Pull from Luma</button></td>'+
+      '</tr>';
+    }).join('');
+    html+='<div class="card"><div class="card-title">Travel distance by event (Luma data)</div>'+
+      '<div style="overflow:auto;"><table><thead><tr>'+
+      '<th>Event</th><th>Avg long-dist</th><th>Avg local</th><th>Attendee regions</th><th></th>'+
+      '</tr></thead><tbody>'+distRows+'</tbody></table></div></div>';
+  }
+
   var evRows=(d.events||[]).map(function(e){
     return '<tr><td><strong>'+(e.event_name||'—')+'</strong></td>'+
       '<td>'+(e.event_date?e.event_date.slice(0,10):'—')+'</td>'+
@@ -187,6 +207,21 @@ function render(d){
 
 function stat(label,value,unit){
   return '<div class="stat"><div class="stat-label">'+label+'</div><div class="stat-value">'+value+'</div>'+(unit?'<div class="stat-unit">'+unit+'</div>':'')+' </div>';
+}
+
+function loadTravelData(eventId, btn){
+  btn.textContent='Loading…';btn.disabled=true;
+  fetch('/api/luma-travel?event_id='+encodeURIComponent(eventId))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var row=btn.closest('tr');
+      var regions=Object.entries(d.region_breakdown||{}).map(function(kv){return kv[1]+' '+kv[0];}).join(', ')||'—';
+      row.cells[1].textContent=d.avg_long_dist_km!=null?d.avg_long_dist_km+' km':'—';
+      row.cells[2].textContent=d.avg_local_dist_km!=null?d.avg_local_dist_km+' km':'—';
+      row.cells[3].textContent=regions;
+      btn.textContent='Loaded ✓';btn.style.background='#639922';
+    })
+    .catch(function(){btn.textContent='Error';btn.disabled=false;});
 }
 
 function exportCSV(){
