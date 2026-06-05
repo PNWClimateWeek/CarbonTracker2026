@@ -440,7 +440,7 @@
     <div class="card-label">Emissions by category</div>
     <div id="bar-chart"><div class="empty">Add an event to see the breakdown.</div></div>
     <hr>
-    <div class="meth">Long-distance travel (Q1): bus 0.068 kg/km; train 0.041 kg/km; car 0.21 kg/km; flight 0.255 kg/km (DEFRA 2023). Local travel (Q2): walk/bike 0 kg/km; transit 0.089 kg/km; car 0.21 kg/km. Energy grid: WA/OR (NWPP eGrid) 0.288 kg CO2e/kWh (EPA eGRID 2024); BC 0.018 kg CO2e/kWh (Canada OBPS 2026); diesel generator 0.2 kg CO2e/kWh. Venue load 2W/sq ft. Catering: plant-based 0.5 kg/meal, mostly-plant 1.2, mixed 2.5, meat-heavy 5.5. Waste: 0.5 kg CO2e/kg landfill; bag count uses 12 kg/bag. Pages: 0.005 kg/page. Sources: GHG Protocol, DEFRA 2023, EPA eGRID, Environment and Climate Change Canada.</div>
+    <div class="meth">Long-distance travel (Q1): bus 0.041 kg/km; train 0.083 kg/km; car 0.244 kg/km; flight 0.255 kg/km. Local travel (Q2): walk/bike 0 kg/km; transit 0.050 kg/km (avg of EPA transit bus 0.041 and transit rail 0.060); car 0.244 kg/km. Note: EPA intercity rail reflects US national grid average — actual PNW rail emissions (Amtrak Cascades, BC Rail) are lower due to the region's hydro-heavy grid. Energy grid: WA/OR (NWPP eGrid) 0.288 kg CO2e/kWh (EPA eGRID 2024); BC 0.018 kg CO2e/kWh (Canada OBPS 2026); diesel generator 0.2 kg CO2e/kWh. Venue load 2W/sq ft. Catering: plant-based 0.5 kg/meal, mostly-plant 1.2, mixed 2.5, meat-heavy 5.5. Waste: 0.5 kg CO2e/kg landfill; bag count uses 12 kg/bag. Pages: 0.005 kg/page. Sources: EPA GHG Emission Factors Hub 2025, DEFRA 2023 (flight), EPA eGRID 2024, Environment and Climate Change Canada.</div>
   </div>
 
   <footer>PNW Climate Week · CO2 calculator for community event organizers in Tacoma, Bend, Seattle, Portland, Vancouver BC, and Bellingham. · Questions or feedback? <a href="mailto:hello@pnwclimateweek.org" style="color:var(--text-tertiary);">hello@pnwclimateweek.org</a> · <a href="/dashboard.html" style="color:var(--text-tertiary);text-decoration:none;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-tertiary)'">Team dashboard</a></footer>
@@ -555,13 +555,13 @@ function calcCO2(){
   var flightDist=v('t-fdist')||500;
   // Long-distance CO2 (Q1) — bus 0.068, train 0.041, car 0.21, flight 0.255 kg/km
   var tCO2=0;
-  tCO2+=att*(v('t-bus')/100)*longDist*2*0.068;
-  tCO2+=att*(v('t-train')/100)*longDist*2*0.041;
-  tCO2+=att*(v('t-car-long')/100)*longDist*2*0.21;
+  tCO2+=att*(v('t-bus')/100)*longDist*2*0.041;
+  tCO2+=att*(v('t-train')/100)*longDist*2*0.083;
+  tCO2+=att*(v('t-car-long')/100)*longDist*2*0.244;
   tCO2+=att*(v('t-flight')/100)*flightDist*2*0.255;
-  // Local CO2 (Q2) — walk/bike 0, transit 0.089, car 0.21 kg/km
-  tCO2+=att*(v('t-transit')/100)*localDist*2*0.089;
-  tCO2+=att*(v('t-car-local')/100)*localDist*2*0.21;
+  // Local CO2 (Q2) — walk/bike 0, transit 0.050, car 0.244 kg/km
+  tCO2+=att*(v('t-transit')/100)*localDist*2*0.050;
+  tCO2+=att*(v('t-car-local')/100)*localDist*2*0.244;
   var eCO2=(v('en-sqft')*2/1000)*v('en-hrs')*parseFloat(sv('en-src'));
   var catEF={vegan:0.5,'mostly-plant':1.2,mixed:2.5,meatheavy:5.5};
   var cCO2=sv('cat-yn')==='yes'?v('cat-meals')*((catEF[sv('cat-type')]||0)+(parseFloat(sv('cat-pack'))||0)+(parseFloat(sv('cat-src'))||0)):0;
