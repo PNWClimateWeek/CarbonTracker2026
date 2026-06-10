@@ -175,7 +175,7 @@ All trips assumed **round-trip** (distance × 2).
 | Mode | EF | Unit | Source |
 |---|---|---|---|
 | Bus (long distance, USA) | 0.044 | kg CO2e / km / person | EPA GHG Emission Factors Hub 2025 (USA) |
-| Car (USA) | 0.191 | kg CO2e / km / person | EPA GHG Emission Factors Hub 2025 — Passenger Car (USA) |
+| Car (USA) | 0.191 | kg CO2e / vehicle-km (solo occupancy assumed) | EPA GHG Emission Factors Hub 2025 — Passenger Car (USA) |
 | Flight (international) | 0.255 | kg CO2e / km / person | DEFRA 2023 (UK) |
 | Train — USA national avg | 0.071 | kg CO2e / km / person | EPA GHG Emission Factors Hub 2025 — Inter-City Rail (USA) |
 | Train — Canada (VIA Rail through Rockies) | 0.20 | kg CO2e / km / person | VIA Rail long-distance diesel, elevated due to low occupancy (Canada) |
@@ -203,7 +203,7 @@ All trips assumed **round-trip** (distance × 2).
 |---|---|---|---|
 | WA/OR grid (NWPP, USA) | 0.288 | kg CO2e / kWh | EPA eGRID 2024 (USA) |
 | BC grid / BC Hydro (Canada) | 0.018 | kg CO2e / kWh | Environment and Climate Change Canada / OBPS 2026 (Canada) |
-| Diesel generator (USA) | 0.200 | kg CO2e / kWh | EPA GHG Emission Factors Hub 2025 (USA) |
+| Diesel generator (USA) | 0.74 | kg CO2e / kWh | EPA GHG Emission Factors Hub 2025 — distillate fuel oil #2 ÷ ~30% generator efficiency (USA) |
 
 Venue load assumed at **2 W/sq ft** (ASHRAE 90.1).  
 Formula: `energy_co2 = venue_size_sqft × 2W × duration_hours / 1000 × grid_ef`
@@ -230,7 +230,7 @@ Bag weight assumed: **12 kg/bag** (EPA WARM v16 default, USA)
 |---|---|---|---|
 | Landfill | 0.639 | kg CO2e / kg waste | EPA WARM v16 — Mixed MSW (USA) |
 | Recycling | 0.099 | kg CO2e / kg waste | EPA WARM v16 — Mixed Recyclables (USA) |
-| Compost | 0.143 | kg CO2e / kg waste | EPA WARM v16 — Mixed Organics (USA) |
+| Compost | −0.18 | kg CO2e / kg waste | EPA WARM v16 — Mixed Organics (composted), net negative: process emissions minus carbon sequestration in finished compost (USA) |
 
 Formula: `waste_co2 = (landfill_bags × 12 × 0.639) + (recycling_bags × 12 × 0.099) + (compost_bags × 12 × 0.143)`
 

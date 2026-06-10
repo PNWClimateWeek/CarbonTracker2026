@@ -306,7 +306,7 @@
         <select id="en-src">
           <option value="0.288152">WA/OR grid (NWPP eGrid — EPA 2024)</option>
           <option value="0.018">BC grid (BC Hydro / hydroelectric — 2026)</option>
-          <option value="0.2">Generator (diesel)</option>
+          <option value="0.74">Generator (diesel)</option>
         </select>
       </div>
     </div>
@@ -431,7 +431,7 @@
       <thead><tr><th>Category</th><th>Factor</th><th>Value</th><th>Source</th></tr></thead>
       <tbody>
         <tr><td>Travel — bus (long distance, USA)</td><td>kg CO2e / km / person</td><td>0.044</td><td>EPA GHG Emission Factors Hub 2025 (USA)</td></tr>
-        <tr><td>Travel — car (USA)</td><td>kg CO2e / km / person</td><td>0.191</td><td>EPA GHG Emission Factors Hub 2025 — Passenger Car (USA)</td></tr>
+        <tr><td>Travel — car (USA)</td><td>kg CO2e / vehicle-km (solo occupancy assumed)</td><td>0.191</td><td>EPA GHG Emission Factors Hub 2025 — Passenger Car (USA)</td></tr>
         <tr><td>Travel — flight (international)</td><td>kg CO2e / km / person</td><td>0.255</td><td>DEFRA 2023 (UK)</td></tr>
         <tr><td>Travel — train (USA national avg)</td><td>kg CO2e / km / person</td><td>0.071</td><td>EPA GHG Emission Factors Hub 2025 — Inter-City Rail (USA)</td></tr>
         <tr><td>Travel — train (BC, Canada — VIA Rail through Rockies)</td><td>kg CO2e / km / person</td><td>0.20</td><td>VIA Rail long-distance diesel service; elevated due to low occupancy on Canadian routes (Canada)</td></tr>
@@ -439,7 +439,7 @@
         <tr><td>Travel — local transit (BC, Canada)</td><td>kg CO2e / km / person</td><td>0.008</td><td>Derived from TransLink Climate Action per-trip emissions data (2023) and renewable diesel transition figures (2024), converted to per-km using estimated 8 km avg trip distance (Canada)</td></tr>
         <tr><td>Energy — WA/OR grid NWPP (USA)</td><td>kg CO2e / kWh</td><td>0.288</td><td>EPA eGRID 2024 (USA)</td></tr>
         <tr><td>Energy — BC grid / BC Hydro (Canada)</td><td>kg CO2e / kWh</td><td>0.018</td><td>Environment and Climate Change Canada / OBPS 2026 (Canada)</td></tr>
-        <tr><td>Energy — diesel generator (USA)</td><td>kg CO2e / kWh</td><td>0.200</td><td>EPA GHG Emission Factors Hub 2025 (USA)</td></tr>
+        <tr><td>Energy — diesel generator (USA)</td><td>kg CO2e / kWh</td><td>0.74</td><td>EPA GHG Emission Factors Hub 2025 — distillate fuel oil #2 combustion ÷ ~30% generator efficiency (USA)</td></tr>
         <tr><td>Energy — venue load assumed (international)</td><td>W / sq ft</td><td>2</td><td>ASHRAE 90.1 typical assembly occupancy</td></tr>
         <tr><td>Catering — rescue / surplus food (international)</td><td>kg CO2e / meal</td><td>0.1</td><td>Transport &amp; handling only — production emissions attributed to original supply chain per consequential accounting (international)</td></tr>
         <tr><td>Catering — vegan (international)</td><td>kg CO2e / meal</td><td>0.5</td><td>Poore &amp; Nemecek (2018), Science</td></tr>
@@ -448,7 +448,7 @@
         <tr><td>Catering — meat-heavy (international)</td><td>kg CO2e / meal</td><td>5.5</td><td>Poore &amp; Nemecek (2018), Science</td></tr>
         <tr><td>Waste — landfill bags (USA)</td><td>kg CO2e / kg waste</td><td>0.639</td><td>EPA WARM v16 — Mixed MSW (landfilled) (USA)</td></tr>
         <tr><td>Waste — recycling bags (USA)</td><td>kg CO2e / kg waste</td><td>0.099</td><td>EPA WARM v16 — Mixed Recyclables (recycled) (USA)</td></tr>
-        <tr><td>Waste — compost bags (USA)</td><td>kg CO2e / kg waste</td><td>0.143</td><td>EPA WARM v16 — Mixed Organics (composted) (USA)</td></tr>
+        <tr><td>Waste — compost bags (USA)</td><td>kg CO2e / kg waste</td><td>−0.18</td><td>EPA WARM v16 — Mixed Organics (composted), net negative: process emissions minus carbon sequestration in finished compost (USA)</td></tr>
         <tr><td>Waste — bag weight assumed</td><td>kg / bag</td><td>12</td><td>EPA WARM v16 default (USA)</td></tr>
         <tr><td>Materials — pages printed (international)</td><td>kg CO2e / page</td><td>0.005</td><td>GHG Protocol (2023)</td></tr>
       </tbody>
@@ -559,9 +559,9 @@ function calcWaste(){
   if(kgO>0&&divO>0){
     var landfillKg=kgO*(1-divO/100);
     var divertedKg=kgO*(divO/100);
-    return (landfillKg*0.639)+(divertedKg*0.121); // diverted avg: recycling 0.099 + compost 0.143 / 2
+    return (landfillKg*0.639)+(divertedKg*-0.041); // diverted avg: recycling 0.099 + compost -0.18 / 2
   }
-  return (v('w-land')*12*0.639)+(v('w-rec')*12*0.099)+(v('w-comp')*12*0.143);
+  return (v('w-land')*12*0.639)+(v('w-rec')*12*0.099)+(v('w-comp')*12*-0.18);
 }
 
 function calcCO2(){
