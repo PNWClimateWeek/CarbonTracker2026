@@ -2,8 +2,7 @@
 // Fetches per-attendee zip + mode from Luma registration answers, calculates travel CO2e
 // using actual haversine distances from attendee zip → event location.
 //
-// TODO: verify actual field names in Luma guest response with a live API key + real event.
-// Known registration questions (matched by label substring):
+// Registration questions matched by label substring:
 //   "What is your current residential zip code?"
 //   "What is your primary mode of transport to the Pacific Northwest region for Climate Week?"
 //   "What is your primary mode of transport to and from this event?"
@@ -57,16 +56,12 @@ function getLocalEF(mode, region) {
 }
 
 // Extract a registration answer by matching a substring of the question label.
-// TODO: confirm Luma field structure. Expected shape:
-//   guest.registration_answers = [{ label: "...", answer: "..." }, ...]
-// May also be: guest.answers, nested under event_ticket.registration_answers, etc.
 function getAnswer(registrationAnswers, labelSubstring) {
   if (!Array.isArray(registrationAnswers)) return null;
   const match = registrationAnswers.find(a =>
-    (a.label || a.question || '').toLowerCase().includes(labelSubstring.toLowerCase())
+    (a.label || '').toLowerCase().includes(labelSubstring.toLowerCase())
   );
-  // TODO: confirm answer field name — may be `answer`, `response`, `value`
-  return match ? (match.answer || match.response || match.value || null) : null;
+  return match ? (match.answer ?? match.value ?? null) : null;
 }
 
 async function fetchAllGuests(eventId, apiKey) {
@@ -85,14 +80,12 @@ async function fetchAllGuests(eventId, apiKey) {
     if (!res.ok) throw new Error(`Luma guests API error ${res.status}: ${await res.text()}`);
 
     const data = await res.json();
-    // TODO: confirm top-level shape — may be data.entries, data.guests, data.data, etc.
-    const entries = data.entries || data.guests || data.data || [];
+    const entries = data.entries || [];
     for (const entry of entries) {
-      // TODO: confirm guest path — may be entry.guest, entry, etc.
-      guests.push(entry.guest || entry);
+      guests.push(entry);
     }
 
-    cursor = data.has_more ? (data.next_cursor || data.pagination?.next_cursor || null) : null;
+    cursor = data.has_more ? (data.next_cursor || null) : null;
     page++;
     if (page > 50) break; // safety cap ~5,000 attendees
   } while (cursor);
@@ -102,15 +95,13 @@ async function fetchAllGuests(eventId, apiKey) {
 
 async function fetchEventCoords(eventId, apiKey) {
   const res = await fetch(
-    `https://api.lu.ma/public/v1/event/get?event_id=${encodeURIComponent(eventId)}`,
+    `https://api.lu.ma/public/v1/event/get?id=${encodeURIComponent(eventId)}`,
     { headers: { 'x-luma-api-key': apiKey, 'accept': 'application/json' } }
   );
   if (!res.ok) return null;
   const { event: ev } = await res.json();
-  const geo = ev?.geo_address_info || {};
-  // TODO: confirm lat/lon field names in Luma geo_address_info
-  const lat = parseFloat(geo.latitude  || geo.lat || geo.lat_lng?.lat);
-  const lon = parseFloat(geo.longitude || geo.lng || geo.lat_lng?.lng);
+  const lat = parseFloat(ev?.coordinate?.latitude ?? ev?.geo_latitude);
+  const lon = parseFloat(ev?.coordinate?.longitude ?? ev?.geo_longitude);
   return (isFinite(lat) && isFinite(lon)) ? { lat, lon } : null;
 }
 
@@ -148,8 +139,7 @@ module.exports = async function handler(req, res) {
     let parsed = 0, skipped = 0;
 
     for (const guest of guests) {
-      // TODO: confirm where registration answers live on the guest object
-      const answers  = guest.registration_answers || guest.answers || [];
+      const answers  = guest.registration_answers || [];
       const zip      = getAnswer(answers, 'residential zip code');
       const longMode = (getAnswer(answers, 'mode of transport to the Pacific Northwest') || '').toLowerCase().trim();
       const localMode= (getAnswer(answers, 'mode of transport to and from this event')  || '').toLowerCase().trim();

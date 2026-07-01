@@ -13,7 +13,7 @@ function extractPostal(geo) {
 }
 
 function formatEvent(ev) {
-  const geo = ev.geo_address_info || {};
+  const geo = ev.geo_address_json || ev.geo_address_info || {};
   const durationHours = (ev.start_at && ev.end_at)
     ? (new Date(ev.end_at) - new Date(ev.start_at)) / 3600000
     : null;
@@ -21,7 +21,7 @@ function formatEvent(ev) {
     event_name:     ev.name || null,
     date:           ev.start_at ? ev.start_at.slice(0, 10) : null,
     city:           matchCity(geo.city),
-    venue_name:     geo.description || geo.full_address || null,
+    venue_name:     geo.full_address || geo.description || null,
     duration_hours: durationHours,
     attendees:      ev.ticket_count?.sold || ev.guest_count || null,
     postal_code:    extractPostal(geo),
@@ -31,7 +31,7 @@ function formatEvent(ev) {
 // Fetch via Luma public API (requires API key)
 async function fetchViaAPI(eventId, apiKey) {
   const res = await fetch(
-    `https://api.lu.ma/public/v1/event/get?event_id=${encodeURIComponent(eventId)}`,
+    `https://api.lu.ma/public/v1/event/get?id=${encodeURIComponent(eventId)}`,
     { headers: { 'x-luma-api-key': apiKey, 'accept': 'application/json' } }
   );
   if (!res.ok) throw new Error(`Luma API ${res.status}: ${await res.text()}`);
@@ -57,7 +57,8 @@ async function fetchViaPage(eventId) {
     try {
       const data = JSON.parse(nextMatch[1]);
       // Luma puts event under several possible paths
-      const ev = data?.props?.pageProps?.event
+      const ev = data?.props?.pageProps?.initialData?.data?.event
+        || data?.props?.pageProps?.event
         || data?.props?.pageProps?.initialData?.event
         || data?.props?.pageProps?.data?.event;
       if (ev?.name) return formatEvent(ev);
@@ -123,11 +124,17 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Use API if key is available, otherwise scrape the public page
-    const data = process.env.LUMA_API_KEY
-      ? await fetchViaAPI(eventId, process.env.LUMA_API_KEY)
-      : await fetchViaPage(eventId);
-
+    let data;
+    if (process.env.LUMA_API_KEY) {
+      try {
+        data = await fetchViaAPI(eventId, process.env.LUMA_API_KEY);
+      } catch {
+        // API key exists but event is inaccessible (e.g. personal calendar) — fall back to scraping
+        data = await fetchViaPage(eventId);
+      }
+    } else {
+      data = await fetchViaPage(eventId);
+    }
     return res.status(200).json(data);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch event from Luma', detail: err.message });
