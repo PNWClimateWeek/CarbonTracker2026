@@ -773,13 +773,13 @@ async function importFromLuma(){
     var res=await fetch('/api/luma-import?url='+encodeURIComponent(url));
     var d=await res.json();
     if(!res.ok){statusEl.style.color='var(--red-text,#A32D2D)';statusEl.textContent=d.error||'Import failed';return;}
-    if(d.event_name)document.getElementById('ev-name').value=d.event_name;
-    if(d.date)document.getElementById('ev-date').value=d.date;
+    document.getElementById('ev-name').value=d.event_name||'';
+    document.getElementById('ev-date').value=d.date||'';
     if(d.city)document.getElementById('ev-city').value=d.city;
-    if(d.venue_name)document.getElementById('ev-venue').value=d.venue_name;
-    if(d.attendees)document.getElementById('ev-att').value=d.attendees;
-    if(d.duration_hours)document.getElementById('en-hrs').value=d.duration_hours.toFixed(1);
-    if(d.postal_code)document.getElementById('ev-zip').value=d.postal_code;
+    document.getElementById('ev-venue').value=d.venue_name||'';
+    document.getElementById('ev-att').value=d.attendees||'';
+    document.getElementById('en-hrs').value=d.duration_hours?d.duration_hours.toFixed(1):'';
+    document.getElementById('ev-zip').value=d.postal_code||'';
     autoSetEnergy();updateRatingPreview();
     statusEl.style.color='var(--accent)';
     statusEl.textContent='Imported: '+(d.event_name||'event')+(d.attendees?' · '+d.attendees+' attendees':'')+(d.city?' · '+d.city:'')+(d.postal_code?' · '+d.postal_code:'');
