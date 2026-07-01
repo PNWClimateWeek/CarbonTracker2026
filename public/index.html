@@ -776,6 +776,7 @@ async function importFromLuma(){
     document.getElementById('ev-name').value=d.event_name||'';
     document.getElementById('ev-date').value=d.date||'';
     if(d.city)document.getElementById('ev-city').value=d.city;
+    document.getElementById('ev-host').value=d.organizer||'';
     document.getElementById('ev-venue').value=d.venue_name||'';
     document.getElementById('ev-att').value=d.attendees||'';
     document.getElementById('en-hrs').value=d.duration_hours?d.duration_hours.toFixed(1):'';

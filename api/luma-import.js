@@ -12,10 +12,13 @@ function extractPostal(geo) {
     (geo.full_address || '').match(/\b([A-Z]\d[A-Z]\s?\d[A-Z]\d|\d{5}(-\d{4})?)\b/i)?.[0] || null;
 }
 
-function formatEvent(ev) {
+function formatEvent(ev, hosts) {
   const geo = ev.geo_address_json || ev.geo_address_info || {};
   const durationHours = (ev.start_at && ev.end_at)
     ? (new Date(ev.end_at) - new Date(ev.start_at)) / 3600000
+    : null;
+  const organizer = Array.isArray(hosts) && hosts.length
+    ? hosts.map(h => h.name).filter(Boolean).join(', ')
     : null;
   return {
     event_name:     ev.name || null,
@@ -25,6 +28,7 @@ function formatEvent(ev) {
     duration_hours: durationHours,
     attendees:      ev.ticket_count?.sold || ev.guest_count || null,
     postal_code:    extractPostal(geo),
+    organizer,
   };
 }
 
@@ -35,8 +39,8 @@ async function fetchViaAPI(eventId, apiKey) {
     { headers: { 'x-luma-api-key': apiKey, 'accept': 'application/json' } }
   );
   if (!res.ok) throw new Error(`Luma API ${res.status}: ${await res.text()}`);
-  const { event } = await res.json();
-  return formatEvent(event);
+  const { event, hosts } = await res.json();
+  return formatEvent(event, hosts);
 }
 
 // Fetch by scraping the public Luma page (no API key needed)
@@ -57,11 +61,12 @@ async function fetchViaPage(eventId) {
     try {
       const data = JSON.parse(nextMatch[1]);
       // Luma puts event under several possible paths
-      const ev = data?.props?.pageProps?.initialData?.data?.event
+      const pageData = data?.props?.pageProps?.initialData?.data;
+      const ev = pageData?.event
         || data?.props?.pageProps?.event
         || data?.props?.pageProps?.initialData?.event
         || data?.props?.pageProps?.data?.event;
-      if (ev?.name) return formatEvent(ev);
+      if (ev?.name) return formatEvent(ev, pageData?.hosts);
     } catch (e) {}
   }
 
@@ -82,8 +87,9 @@ async function fetchViaPage(eventId) {
         duration_hours: (ev.startDate && ev.endDate)
           ? (new Date(ev.endDate) - new Date(ev.startDate)) / 3600000
           : null,
-        attendees:      null, // not in JSON-LD
+        attendees:      null,
         postal_code:    addr.postalCode || null,
+        organizer:      null,
       };
     } catch (e) {}
   }
@@ -100,6 +106,7 @@ async function fetchViaPage(eventId) {
       duration_hours: null,
       attendees:      null,
       postal_code:    null,
+      organizer:      null,
     };
   }
 
