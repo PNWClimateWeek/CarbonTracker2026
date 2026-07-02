@@ -240,8 +240,8 @@
   <div class="card">
     <div class="card-label">Your details</div>
     <div class="fg fg2">
-      <div class="f"><label class="fl">Name</label><input type="text" id="sub-name" placeholder="e.g. Alex Chen"></div>
-      <div class="f"><label class="fl">Email</label><input type="email" id="sub-email" placeholder="e.g. alex@example.com"></div>
+      <div class="f"><label class="fl">Name *</label><input type="text" id="sub-name" placeholder="e.g. Alex Chen"></div>
+      <div class="f"><label class="fl">Email *</label><input type="email" id="sub-email" placeholder="e.g. alex@example.com"></div>
     </div>
   </div>
 
@@ -661,6 +661,10 @@ function addEvent(){
   var name=document.getElementById('ev-name').value.trim();
   var att=v('ev-att');
   var warn=document.getElementById('add-warn');
+  var submitterName=document.getElementById('sub-name').value.trim();
+  var submitterEmail=document.getElementById('sub-email').value.trim();
+  if(!submitterName){warn.style.display='';warn.textContent='Please enter your name.';document.getElementById('sub-name').focus();return;}
+  if(!submitterEmail){warn.style.display='';warn.textContent='Please enter your email.';document.getElementById('sub-email').focus();return;}
   if(!name){warn.style.display='';warn.textContent='Please enter an event name.';return;}
   if(!att){warn.style.display='';warn.textContent='Please enter attendee count.';return;}
   warn.style.display='none';
