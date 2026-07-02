@@ -299,7 +299,7 @@
 
   <div class="card t-energy">
     <div class="card-label">⚡ Energy</div>
-    <div class="note">We estimate venue energy from your floor size and event duration — no meter readings needed. BC Hydro is auto-selected for Vancouver BC events (very low impact). Diesel generator has the highest; WA/OR grid is in between.</div>
+    <div class="note">We estimate venue energy from your floor size and event duration — no meter readings needed. Select the energy source that best matches your venue.</div>
     <div class="fg fg3">
       <div class="f"><label class="fl">Event duration (hrs)</label><input type="number" id="en-hrs" min="0" step="0.5" placeholder="3"></div>
       <div class="f"><label class="fl">Venue size (sq ft)</label><input type="number" id="en-sqft" min="0" placeholder="2000"></div>
@@ -315,7 +315,7 @@
 
   <div class="card t-catering">
     <div class="card-label">🥗 Catering</div>
-    <div class="note">Select the food type that best describes what was served and enter the number of portions (plates served, not headcount — some events serve multiple meals). Rescue or surplus food (e.g. Too Good To Go) has a much lower factor since production emissions are attributed to the original supply chain.</div>
+    <div class="note">Select the food type that best describes what was served and enter the number of portions (plates served, not headcount — some events serve multiple meals). Rescue or surplus food has a much lower factor since production emissions are attributed to the original supply chain.</div>
     <div class="fg fg3">
       <div class="f"><label class="fl">Catering provided?</label>
         <select id="cat-yn" onchange="toggleCat()"><option value="no">No</option><option value="yes">Yes</option></select>
