@@ -353,4 +353,3 @@ curl -X POST https://pnwcw-sustainabilitytracker.vercel.app/api/migrate \
 - **User guide page:** Inline notes are live on the form. A dedicated `/guide.html` (linked from the page) is planned for when fuller documentation is needed.
 - **Catering EFs:** Poore & Nemecek (2018) figures are per-kg-of-food adapted to per-meal — not a directly published per-meal figure. Acceptable for current use; flag if methodology is ever formally published.
 - **Distance defaults:** Form submission uses hardcoded 300 km / 8 km / 500 km defaults. Per-attendee actual distances only available via `/api/luma-travel`.
-- **Git author config:** Commits are showing local machine identity. Run `git config --global user.name` and `git config --global user.email` to set correctly.
