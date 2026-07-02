@@ -801,6 +801,7 @@ async function importFromLuma(){
     document.getElementById('ev-att').value=d.attendees||'';
     document.getElementById('en-hrs').value=d.duration_hours?d.duration_hours.toFixed(1):'';
     document.getElementById('ev-zip').value=d.postal_code||'';
+    if(d.luma_event_id)document.getElementById('luma-event-id').value=d.luma_event_id;
     autoSetEnergy();updateRatingPreview();
     statusEl.style.color='var(--accent)';
     statusEl.textContent='Imported: '+(d.event_name||'event')+(d.attendees?' · '+d.attendees+' attendees':'')+(d.city?' · '+d.city:'')+(d.postal_code?' · '+d.postal_code:'');

@@ -29,6 +29,7 @@ function formatEvent(ev, hosts, guestCount) {
     attendees:      ev.ticket_count?.sold || ev.guest_count || guestCount || null,
     postal_code:    extractPostal(geo),
     organizer,
+    luma_event_id:  ev.api_id || ev.id || null,
   };
 }
 
