@@ -4,13 +4,15 @@
 **GitHub:** https://github.com/PNWClimateWeek/CarbonTracker2026  
 **Vercel account:** vancouver-9844s-projects  
 **Contact:** hello@pnwclimateweek.org  
-**Last updated:** June 2026
+**Last updated:** July 2026
 
 ---
 
 ## 1. Purpose
 
-A web-based carbon footprint calculator for community event organizers in the Pacific Northwest. Organizers submit event details after their event; the tool calculates CO2e emissions across five categories (travel, energy, catering, waste, materials) and stores results in a shared database. A password-protected internal dashboard aggregates submissions for PNW Climate Week team review.
+A web-based carbon footprint calculator for community event organizers in the Pacific Northwest. Organizers submit event details after their event; the tool calculates CO2e emissions across five categories (travel, energy, catering, waste, printed materials) and stores results in a shared database. A password-protected internal dashboard aggregates submissions for PNW Climate Week team review.
+
+Individual event emissions are not shared publicly — results are aggregated across all submissions and reported at the Climate Week level only.
 
 **Target cities:** Seattle, Portland, Tacoma, Bellingham, Bend, Vancouver BC
 
@@ -56,14 +58,16 @@ betaone/
 
 ## 4. Environment Variables
 
-Set in Vercel dashboard under Project → Settings → Environment Variables.
+Set in Vercel dashboard (Production + Preview + Development).
 
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | Neon PostgreSQL connection string |
-| `DASHBOARD_SECRET` | Key for `/api/dashboard-data` (`pnwcw2026`) |
-| `MIGRATION_SECRET` | Bearer token for POST `/api/migrate` |
-| `LUMA_API_KEY` | Luma API key for event prefill and attendee travel data |
+| Variable | Purpose | Status |
+|---|---|---|
+| `DATABASE_URL` | Neon PostgreSQL connection string | Set |
+| `DASHBOARD_SECRET` | Key for `/api/dashboard-data` (`pnwcw2026`) | Set |
+| `MIGRATION_SECRET` | Bearer token for POST `/api/migrate` | Set |
+| `LUMA_API_KEY` | Luma API key for event prefill and attendee travel | Set July 2026 |
+
+**LUMA_API_KEY note:** This key is scoped to the PNW Climate Week org calendar (`cal-2fOrFiMnHYEI0bL`). It can access events created under that calendar. Personal calendar events (e.g. organizer's own Luma account) return a 403 — `luma-import.js` falls back to page scraping automatically in that case.
 
 ---
 
@@ -85,7 +89,7 @@ Returns aggregated summary, by-city breakdown, rating distribution, and full eve
 Returns weekly summary stats (event count, attendees, CO2 totals, category breakdown, top cities, rating distribution). Defaults to current Monday.
 
 ### `GET /api/luma-import?url=<luma-url>` or `?id=<event-id>`
-Fetches event details from Luma API and returns prefill data: event name, date, city, venue, duration, attendees, postal code.
+Fetches event details and returns prefill data: event name, date, city, host/organizer, venue, duration, attendees, postal code. Uses API if `LUMA_API_KEY` is set and has access; falls back to page scraping (`__NEXT_DATA__` → JSON-LD → Open Graph) for personal calendar events or when key is absent.
 
 ### `GET /api/luma-travel?event_id=<id>` or `?url=<luma-url>`
 Fetches all attendees from Luma, reads each person's zip code and travel mode from registration answers, calculates actual haversine distance from their zip to the event location, and returns total travel CO2e, average distances, mode breakdown, and region breakdown.
@@ -193,7 +197,7 @@ All trips assumed **round-trip** (distance × 2).
 
 ### Travel — Distance Calculation
 
-**Form submission (aggregate):** Fixed defaults — long-distance 300 km, local 8 km, flight 500 km. Distance input fields removed from form.
+**Form submission (aggregate):** Fixed defaults — long-distance 300 km, local 8 km, flight 500 km.
 
 **Luma attendee pull (`/api/luma-travel`):** Per-attendee haversine distance from their residential zip centroid to the event location. Uses `lib/geo.js` — bundled US state centroids (zip prefix → lat/lon) and Canadian province centroids (postal letter → lat/lon). No external geocoding API required.
 
@@ -236,6 +240,8 @@ Formula: `waste_co2 = (landfill_bags × 12 × 0.639) + (recycling_bags × 12 × 
 
 ### Materials
 
+Only printed pages have an emission factor. Swag and signage are collected for records but have no published per-unit EF.
+
 | Item | EF | Unit | Source |
 |---|---|---|---|
 | Pages printed | 0.005 | kg CO2e / page | GHG Protocol (2023, international) |
@@ -244,37 +250,64 @@ Formula: `waste_co2 = (landfill_bags × 12 × 0.639) + (recycling_bags × 12 × 
 
 ## 8. Luma Integration
 
+### Confirmed API field names (verified July 2026 against live API)
+
+| Field | Confirmed value |
+|---|---|
+| Event endpoint param | `?id=` (not `?event_id=`) |
+| Event geo field | `geo_address_json` (API) / `geo_address_info` (page scrape) — both handled |
+| Event coordinates | `event.coordinate.latitude` / `event.coordinate.longitude` |
+| Guests top-level | `data.entries` |
+| Guest answers | `entry.registration_answers` (array of `{label, answer, value}`) |
+| Answer field | `match.answer ?? match.value` |
+| Question field | `a.label` |
+| Pagination cursor | `data.next_cursor` |
+| NEXT_DATA path (page scrape) | `props.pageProps.initialData.data.event` |
+| Hosts (page scrape) | `props.pageProps.initialData.data.hosts` |
+
 ### Event prefill (`/api/luma-import`)
-Paste a Luma event URL into the form → auto-fills event name, date, city, venue, duration, attendees, postal code. The Luma event ID is extracted from the URL and stored in a hidden field, then saved to the database on submission.
+
+Paste a Luma event URL → auto-fills: event name, date, city, host/organizer, venue, duration, attendees, postal code.
+
+**Access logic:**
+1. If `LUMA_API_KEY` is set and event is in org calendar → uses API
+2. If API returns 403 (personal calendar event) → falls back to page scraping
+3. If no API key → page scraping only
+
+**Obfuscated events:** Luma hides the full address for some events until registration. In this case venue and postal code will be blank — city still populates. No fallback or default postal is applied.
+
+**Import behaviour:** All importable fields (name, date, host, venue, attendees, duration, zip) are always cleared and reset on each new import. City is only updated if Luma returns one — dropdown does not reset to default if city is unavailable.
 
 ### Attendee travel (`/api/luma-travel`)
-Luma collects the following registration questions from every attendee:
+
+Requires these three registration questions on the Luma event (matched by label substring):
 1. **"What is your current residential zip code?"** — free response
 2. **"What is your primary mode of transport to the Pacific Northwest region for Climate Week?"** — N/A (local), Bus, Train, Car, Flight
 3. **"What is your primary mode of transport to and from this event?"** — Walk/Bike, Transit, Car
 
-`/api/luma-travel` fetches all guests (paginated), reads these three answers per person, determines their region from their zip, applies the appropriate EF, calculates haversine distance from their zip centroid to the event location, and returns:
+These questions are confirmed present on PNW Climate Week events. Fetches all guests (paginated), calculates haversine distance per attendee from their zip centroid to the event location, returns:
 - Total travel CO2e (long-distance + local)
 - Average long-distance and local distances
 - Average distance by region (BC, Canada, PNW, national)
-- Mode breakdown
-- Region breakdown (attendee counts per region)
+- Mode breakdown and region breakdown
 
-**Status:** Skeleton built. Field name matching (registration answer path in Luma API response) needs verification with a live API key against a real event.
+**Status:** Code complete and field names confirmed. End-to-end test with a live event that has actual attendee zip/travel responses still needed.
 
 ---
 
 ## 9. Frontend Features (index.html)
 
-- **Luma prefill:** Paste event URL → auto-fills event details + stores Luma event ID
+- **Luma prefill:** Paste event URL → auto-fills event details, host/organizer, stores Luma event ID; clears all fields on each new import
+- **Mandatory fields:** Name, email, event name, date, city, host/organizer, zip/postal, attendees, both travel sections (must each total 100%), energy duration + venue size, catering portions (if catering = yes), pages printed
 - **Live CO2 estimate:** Recalculates on every input change, displayed before submission
-- **Travel validation:** Long-distance and local mode percentages must each sum to 100%
+- **Travel validation:** Long-distance and local mode percentages must each sum to 100%; blocked at submission if not
 - **Regional EFs:** Train and transit EFs adjust automatically based on event zip/postal code
 - **Regional energy defaults:** Auto-sets BC Hydro grid factor when city = Vancouver BC
+- **Inline user guide:** Short contextual notes in every section explaining what to enter and why
 - **SDG tagging:** Multi-select chips for UN Sustainable Development Goals
-- **Event partners:** Dynamic rows — partner name + category (Waste, Energy, Catering, Transportation, Other)
+- **Sustainable event partners:** Dynamic rows (partner name + category) — feeds PNW sustainability provider database
 - **Sustainability initiatives, wins, areas to improve:** Free-text reflection fields
-- **Swag & products:** What was given away as swag; whether products were sold and what
+- **Swag & products:** What was given away; whether products were sold and what
 - **Ratings:** Self-assessed (Exemplary → Needs improvement)
 - **Feedback link:** hello@pnwclimateweek.org in header and footer
 
@@ -314,10 +347,10 @@ curl -X POST https://pnwcw-sustainabilitytracker.vercel.app/api/migrate \
 
 ---
 
-## 12. Known Issues / Open Items
+## 12. Open Items
 
-- **Luma guest field names:** `luma-travel.js` matches registration answers by question label substring. The exact shape of the Luma guest API response (`registration_answers` vs `answers`, `answer` vs `response` vs `value`, guest path `entry.guest` vs `entry`) needs verification with a live API key against a real event. All ambiguous spots are marked `TODO` in the file.
-- **Luma event coordinates:** `luma-travel.js` fetches event lat/lon from `geo_address_info`. Field names (`latitude`/`longitude` vs `lat`/`lng` vs `lat_lng.lat`) need live verification.
-- **Luma postal code:** Pulled from `geo_address_info.postal_code / .zip_code / .zip` or regex on `full_address`. Falls back to manual entry. Field name unconfirmed without live API key.
-- **Catering EFs:** Poore & Nemecek (2018) figures are per-kg-of-food, adapted to per-meal — not a directly published per-meal figure.
+- **Luma travel end-to-end test:** `luma-travel.js` field names are confirmed at code level but have not been tested against a live event with actual attendee zip/travel answers. Needs one real event with responses to validate the full pipeline.
+- **User guide page:** Inline notes are live on the form. A dedicated `/guide.html` (linked from the page) is planned for when fuller documentation is needed.
+- **Catering EFs:** Poore & Nemecek (2018) figures are per-kg-of-food adapted to per-meal — not a directly published per-meal figure. Acceptable for current use; flag if methodology is ever formally published.
 - **Distance defaults:** Form submission uses hardcoded 300 km / 8 km / 500 km defaults. Per-attendee actual distances only available via `/api/luma-travel`.
+- **Git author config:** Commits are showing local machine identity. Run `git config --global user.name` and `git config --global user.email` to set correctly.
