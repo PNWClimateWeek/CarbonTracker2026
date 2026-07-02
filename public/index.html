@@ -228,7 +228,7 @@
 
   <div class="card">
     <div class="card-label">Import from Luma</div>
-    <div class="note">Paste a Luma event URL to auto-fill event name, date, city, venue, attendees, and duration.</div>
+    <div class="note">Paste your Luma event URL to auto-fill event name, date, city, host, venue, attendees, and duration. If your registration included the three travel questions (zip code, long-distance mode, local mode), attendee travel data can be pulled directly from Luma on the dashboard — giving you actual distances instead of estimates.</div>
     <div class="fg fg2" style="align-items:flex-end;">
       <div class="f"><label class="fl">Luma event URL</label><input type="text" id="luma-url" placeholder="https://lu.ma/your-event"></div>
       <input type="hidden" id="luma-event-id">
@@ -272,7 +272,7 @@
   <div class="card t-travel">
     <div class="card-label">🚲 Travel</div>
 
-    <div class="note" style="margin-bottom:.75rem;">How did attendees get to Climate Week? <span style="color:var(--text-tertiary);">Should total 100%</span></div>
+    <div class="note" style="margin-bottom:.75rem;">Two separate breakdowns: how attendees got to Climate Week (long-distance), and how they got to/from your specific event (local). Each group must add to 100%. Emission factors automatically adjust based on your event's postal code — BC postal codes use TransLink and VIA Rail figures, US zip codes use EPA averages.<br><br>How did attendees get to Climate Week? <span style="color:var(--text-tertiary);">Should total 100%</span></div>
     <div class="fg fg5">
       <div class="f"><label class="fl">Local (N/A) %</label><input type="number" id="t-local" min="0" max="100" placeholder="0" oninput="checkTravel()"></div>
       <div class="f"><label class="fl">Bus %</label><input type="number" id="t-bus" min="0" max="100" placeholder="0" oninput="checkTravel()"></div>
@@ -299,6 +299,7 @@
 
   <div class="card t-energy">
     <div class="card-label">⚡ Energy</div>
+    <div class="note">We estimate venue energy from your floor size and event duration — no meter readings needed. BC Hydro is auto-selected for Vancouver BC events (very low impact). Diesel generator has the highest; WA/OR grid is in between.</div>
     <div class="fg fg3">
       <div class="f"><label class="fl">Event duration (hrs)</label><input type="number" id="en-hrs" min="0" step="0.5" placeholder="3"></div>
       <div class="f"><label class="fl">Venue size (sq ft)</label><input type="number" id="en-sqft" min="0" placeholder="2000"></div>
@@ -314,6 +315,7 @@
 
   <div class="card t-catering">
     <div class="card-label">🥗 Catering</div>
+    <div class="note">Select the food type that best describes what was served and enter the number of portions (plates served, not headcount — some events serve multiple meals). Rescue or surplus food (e.g. Too Good To Go) has a much lower factor since production emissions are attributed to the original supply chain.</div>
     <div class="fg fg3">
       <div class="f"><label class="fl">Catering provided?</label>
         <select id="cat-yn" onchange="toggleCat()"><option value="no">No</option><option value="yes">Yes</option></select>
@@ -333,7 +335,7 @@
 
   <div class="card t-waste">
     <div class="card-label">🗑️ Waste</div>
-    <div class="note">Count bags at end of event. A full standard garbage bag ≈ 10–15 kg. If the venue provides a diversion report with total weight and diversion rate, use the override fields — non-diverted waste uses the landfill EF, diverted waste uses the average recycling + compost EF.</div>
+    <div class="note">At least one waste field must be filled in — either bag counts below, or the weight override fields if your venue provided a diversion report. A standard garbage bag is assumed at 12 kg. Compost bags are carbon-negative and will reduce your total.</div>
     <div class="fg fg3">
       <div class="f"><label class="fl">Full landfill bags</label><input type="number" id="w-land" min="0" placeholder="0"></div>
       <div class="f"><label class="fl">Full recycling bags</label><input type="number" id="w-rec" min="0" placeholder="0"></div>
@@ -347,6 +349,7 @@
 
   <div class="card t-materials">
     <div class="card-label">📦 Materials + swag</div>
+    <div class="note">Enter the number of pages printed for your event. Swag and signage details are collected for our records.</div>
     <div class="fg fg2" style="margin-bottom:10px;">
       <div class="f"><label class="fl">Pages printed</label><input type="number" id="mat-pages" min="0" placeholder="0"></div>
     </div>
@@ -373,13 +376,14 @@
 
   <div class="card">
     <div class="card-label">Sustainable event partners</div>
-    <div class="note" style="margin-bottom:10px;">List any sustainable vendors, suppliers, or organizations you partnered with for this event.</div>
+    <div class="note" style="margin-bottom:10px;">List any sustainable vendors, suppliers, or organizations you partnered with — caterers, waste haulers, transit sponsors, energy providers, and more. Every submission helps us build a shared PNW directory of trusted sustainability partners for future Climate Week organizers.</div>
     <div id="partners-list"></div>
     <button type="button" onclick="addPartner()" style="background:none;border:0.5px dashed var(--border-mid);color:var(--text-secondary);border-radius:var(--radius-md);padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;width:100%;margin-top:6px;">+ Add partner</button>
   </div>
 
   <div class="card">
     <div class="card-label">Sustainability initiatives</div>
+    <div class="note" style="margin-bottom:10px;">Tell us what you did differently — these stories are just as valuable as the numbers.</div>
     <div class="fg fg2" style="margin-bottom:10px;">
       <div class="f"><label class="fl">Initiatives taken</label><textarea id="q-initiatives" placeholder="e.g. Partnered with a local zero-waste caterer, offered transit subsidies to attendees..."></textarea></div>
       <div class="f"><label class="fl">Wins</label><textarea id="q-good" placeholder="e.g. 80% of attendees arrived by transit, zero single-use plastics..."></textarea></div>
