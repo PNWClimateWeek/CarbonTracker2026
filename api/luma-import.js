@@ -12,7 +12,7 @@ function extractPostal(geo) {
     (geo.full_address || '').match(/\b([A-Z]\d[A-Z]\s?\d[A-Z]\d|\d{5}(-\d{4})?)\b/i)?.[0] || null;
 }
 
-function formatEvent(ev, hosts) {
+function formatEvent(ev, hosts, guestCount) {
   const geo = ev.geo_address_json || ev.geo_address_info || {};
   const durationHours = (ev.start_at && ev.end_at)
     ? (new Date(ev.end_at) - new Date(ev.start_at)) / 3600000
@@ -26,7 +26,7 @@ function formatEvent(ev, hosts) {
     city:           matchCity(geo.city),
     venue_name:     geo.full_address || geo.description || null,
     duration_hours: durationHours,
-    attendees:      ev.ticket_count?.sold || ev.guest_count || null,
+    attendees:      ev.ticket_count?.sold || ev.guest_count || guestCount || null,
     postal_code:    extractPostal(geo),
     organizer,
   };
@@ -39,8 +39,8 @@ async function fetchViaAPI(eventId, apiKey) {
     { headers: { 'x-luma-api-key': apiKey, 'accept': 'application/json' } }
   );
   if (!res.ok) throw new Error(`Luma API ${res.status}: ${await res.text()}`);
-  const { event, hosts } = await res.json();
-  return formatEvent(event, hosts);
+  const body = await res.json();
+  return formatEvent(body.event, body.hosts, body.event?.guest_count || body.guest_count);
 }
 
 // Fetch by scraping the public Luma page (no API key needed)
@@ -66,7 +66,7 @@ async function fetchViaPage(eventId) {
         || data?.props?.pageProps?.event
         || data?.props?.pageProps?.initialData?.event
         || data?.props?.pageProps?.data?.event;
-      if (ev?.name) return formatEvent(ev, pageData?.hosts);
+      if (ev?.name) return formatEvent(ev, pageData?.hosts, pageData?.guest_count || pageData?.ticket_count);
     } catch (e) {}
   }
 
