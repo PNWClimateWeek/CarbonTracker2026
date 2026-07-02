@@ -249,12 +249,12 @@
     <div class="card-label">Event details</div>
     <div class="fg fg4">
       <div class="f"><label class="fl">Event name *</label><input type="text" id="ev-name" placeholder="e.g. Opening Ceremony"></div>
-      <div class="f"><label class="fl">Date</label><input type="date" id="ev-date"></div>
-      <div class="f"><label class="fl">City</label>
+      <div class="f"><label class="fl">Date *</label><input type="date" id="ev-date"></div>
+      <div class="f"><label class="fl">City *</label>
         <select id="ev-city" onchange="autoSetEnergy()"><option>Tacoma</option><option>Bend</option><option>Seattle</option><option>Portland</option><option>Vancouver BC</option><option>Bellingham</option></select>
       </div>
-      <div class="f"><label class="fl">Host / organizer</label><input type="text" id="ev-host" placeholder="Name or org"></div>
-      <div class="f"><label class="fl">Event zip / postal code</label><input type="text" id="ev-zip" placeholder="e.g. 98101 or V6B 1A1" oninput="updateRatingPreview()"></div>
+      <div class="f"><label class="fl">Host / organizer *</label><input type="text" id="ev-host" placeholder="Name or org"></div>
+      <div class="f"><label class="fl">Event zip / postal code *</label><input type="text" id="ev-zip" placeholder="e.g. 98101 or V6B 1A1" oninput="updateRatingPreview()"></div>
     </div>
     <div class="fg fg3">
       <div class="f"><label class="fl">Total attendees *</label><input type="number" id="ev-att" min="0" placeholder="0"></div>
@@ -270,7 +270,7 @@
   </div>
 
   <div class="card t-travel">
-    <div class="card-label">🚲 Travel</div>
+    <div class="card-label">🚲 Travel *</div>
 
     <div class="note" style="margin-bottom:.75rem;">Two separate breakdowns: how attendees got to Climate Week (long-distance), and how they got to/from your specific event (local). Each group must add to 100%. Emission factors automatically adjust based on your event's postal code — BC postal codes use TransLink and VIA Rail figures, US zip codes use EPA averages.<br><br>How did attendees get to Climate Week? <span style="color:var(--text-tertiary);">Should total 100%</span></div>
     <div class="fg fg5">
@@ -301,8 +301,8 @@
     <div class="card-label">⚡ Energy</div>
     <div class="note">We estimate venue energy from your floor size and event duration — no meter readings needed. BC Hydro is auto-selected for Vancouver BC events (very low impact). Diesel generator has the highest; WA/OR grid is in between.</div>
     <div class="fg fg3">
-      <div class="f"><label class="fl">Event duration (hrs)</label><input type="number" id="en-hrs" min="0" step="0.5" placeholder="3"></div>
-      <div class="f"><label class="fl">Venue size (sq ft)</label><input type="number" id="en-sqft" min="0" placeholder="2000"></div>
+      <div class="f"><label class="fl">Event duration (hrs) *</label><input type="number" id="en-hrs" min="0" step="0.5" placeholder="3"></div>
+      <div class="f"><label class="fl">Venue size (sq ft) *</label><input type="number" id="en-sqft" min="0" placeholder="2000"></div>
       <div class="f"><label class="fl">Energy source</label>
         <select id="en-src">
           <option value="0.288152">WA/OR grid (NWPP eGrid — EPA 2024)</option>
@@ -329,7 +329,7 @@
           <option value="meatheavy">Meat-heavy</option>
         </select>
       </div>
-      <div class="f hidden" id="cat-meals-wrap"><label class="fl">Portions served</label><input type="number" id="cat-meals" min="0" placeholder="0"></div>
+      <div class="f hidden" id="cat-meals-wrap"><label class="fl">Portions served *</label><input type="number" id="cat-meals" min="0" placeholder="0"></div>
     </div>
   </div>
 
@@ -351,7 +351,7 @@
     <div class="card-label">📦 Materials + swag</div>
     <div class="note">Enter the number of pages printed for your event. Swag and signage details are collected for our records.</div>
     <div class="fg fg2" style="margin-bottom:10px;">
-      <div class="f"><label class="fl">Pages printed</label><input type="number" id="mat-pages" min="0" placeholder="0"></div>
+      <div class="f"><label class="fl">Pages printed *</label><input type="number" id="mat-pages" min="0" placeholder="0"></div>
     </div>
 
     <div class="f" style="margin-bottom:10px;">
@@ -663,10 +663,22 @@ function addEvent(){
   var warn=document.getElementById('add-warn');
   var submitterName=document.getElementById('sub-name').value.trim();
   var submitterEmail=document.getElementById('sub-email').value.trim();
+  var longTotal=v('t-local')+v('t-bus')+v('t-train')+v('t-car-long')+v('t-flight');
+  var localTotal=v('t-walk')+v('t-transit')+v('t-car-local');
+  var pagesEl=document.getElementById('mat-pages');
   if(!submitterName){warn.style.display='';warn.textContent='Please enter your name.';document.getElementById('sub-name').focus();return;}
   if(!submitterEmail){warn.style.display='';warn.textContent='Please enter your email.';document.getElementById('sub-email').focus();return;}
   if(!name){warn.style.display='';warn.textContent='Please enter an event name.';return;}
+  if(!sv('ev-date')){warn.style.display='';warn.textContent='Please enter the event date.';document.getElementById('ev-date').focus();return;}
+  if(!document.getElementById('ev-host').value.trim()){warn.style.display='';warn.textContent='Please enter a host / organizer.';document.getElementById('ev-host').focus();return;}
+  if(!document.getElementById('ev-zip').value.trim()){warn.style.display='';warn.textContent='Please enter the event zip / postal code.';document.getElementById('ev-zip').focus();return;}
   if(!att){warn.style.display='';warn.textContent='Please enter attendee count.';return;}
+  if(longTotal!==100){warn.style.display='';warn.textContent='Long-distance travel percentages must total 100% (currently '+longTotal+'%).';document.getElementById('t-local').focus();return;}
+  if(localTotal!==100){warn.style.display='';warn.textContent='Local travel percentages must total 100% (currently '+localTotal+'%).';document.getElementById('t-walk').focus();return;}
+  if(!v('en-hrs')){warn.style.display='';warn.textContent='Please enter the event duration.';document.getElementById('en-hrs').focus();return;}
+  if(!v('en-sqft')){warn.style.display='';warn.textContent='Please enter the venue size.';document.getElementById('en-sqft').focus();return;}
+  if(sv('cat-yn')==='yes'&&!v('cat-meals')){warn.style.display='';warn.textContent='Please enter the number of portions served.';document.getElementById('cat-meals').focus();return;}
+  if(pagesEl.value===''){warn.style.display='';warn.textContent='Please enter pages printed (enter 0 if none).';pagesEl.focus();return;}
   warn.style.display='none';
   var co2=calcCO2(),p=co2.total/att,rating=getRating(p);
   var evt={
