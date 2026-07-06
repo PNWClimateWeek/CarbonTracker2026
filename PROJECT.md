@@ -4,7 +4,7 @@
 **GitHub:** https://github.com/PNWClimateWeek/CarbonTracker2026  
 **Vercel account:** vancouver-9844s-projects  
 **Contact:** hello@pnwclimateweek.org  
-**Last updated:** 2026-07-02
+**Last updated:** 2026-07-06
 
 ---
 
@@ -25,7 +25,7 @@ Individual event emissions are not shared publicly — results are aggregated ac
 | Frontend | Static HTML/CSS/JS (no framework) |
 | Backend | Vercel Serverless Functions (Node.js) |
 | Database | Neon PostgreSQL (serverless) |
-| File storage | Vercel Blob *(added 2026-07-02 — pending CSV upload endpoint)* |
+| File storage | Vercel Blob, private access *(CSV upload + authenticated download proxy live 2026-07-06)* |
 | Deployment | Vercel (auto-deploy on push to `main`) |
 | Event import | Luma API (`/public/v1/event/get`) + page scraping fallback |
 | Attendee travel | Luma guest CSV upload (client-side parse) or Luma API (`/public/v1/event/get-guests`) |
@@ -42,11 +42,13 @@ betaone/
 │   ├── index.html          # Main calculator form (user-facing)
 │   └── dashboard.html      # Internal team dashboard (password-gated)
 ├── api/
-│   ├── events.js           # GET / POST / DELETE events
+│   ├── events.js           # GET / POST / PATCH / DELETE events
 │   ├── dashboard-data.js   # Aggregated dashboard data
 │   ├── stats.js            # Weekly stats summary
 │   ├── luma-import.js      # Luma event prefill
 │   ├── luma-travel.js      # Per-attendee travel emissions from Luma guests API
+│   ├── upload-csv.js       # Stores guest CSV to Blob (private access)
+│   ├── csv-download.js     # Authenticated proxy to fetch a private CSV (dashboard only)
 │   └── migrate.js          # One-time DB schema migration
 ├── lib/
 │   ├── db.js               # PostgreSQL pool + schema SQL
@@ -67,7 +69,7 @@ Set in Vercel dashboard (Production + Preview + Development).
 | `DASHBOARD_SECRET` | Key for `/api/dashboard-data` (`pnwcw2026`) | Set |
 | `MIGRATION_SECRET` | Bearer token for POST `/api/migrate` | Set |
 | `LUMA_API_KEY` | Luma API key for event prefill and attendee travel | Set 2026-07-01 |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob store token for CSV file storage | Blob store created 2026-07-02 — token auto-added by Vercel |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob store token for CSV file storage | Set — used by `upload-csv.js` and `csv-download.js`. Store is **private access**; do not switch to public — CSVs contain attendee names/emails/zips |
 
 **LUMA_API_KEY note:** Scoped to PNW Climate Week org calendar (`cal-2fOrFiMnHYEI0bL`). Can access events created under that calendar. Events co-hosted (but not owned) by the org return 403 on `get-guests` — this is a Luma API limitation, not a bug. `luma-import.js` falls back to page scraping automatically for 403s on event prefill.
 
@@ -82,7 +84,16 @@ Returns stored events. Query params: `city`, `limit`, `offset`, `since`.
 Saves a new event submission. Required fields: `event_name`, `total_attendees`, `total_co2e_kg`, `per_attendee_co2e_kg`. Also accepts `luma_event_id` for linking to Luma attendee data.
 
 ### `DELETE /api/events?id=<uuid>`
-Deletes an event by ID.
+Deletes an event by ID. Wired to the dashboard's Delete button *(added 2026-07-06)* — confirm-gated, hard delete, no undo.
+
+### `PATCH /api/events?id=<uuid>`
+Updates travel fields on an existing event (used by the dashboard's retroactive CSV/edit flow). Accepts travel percentage fields, `long_distance_km`, `avg_long_dist_km`, recomputed travel/total/per-attendee CO2e, and optionally `luma_csv_url`.
+
+### `POST /api/upload-csv` *(added 2026-07-06)*
+Stores a guest CSV to Vercel Blob with **private** access (matches the store's config — do not change to public; these files contain attendee PII). Body: `{filename, content, event_id}`. Returns `{url}`. Used by both the main calculator (on submit) and the dashboard's edit modal (retroactive upload).
+
+### `GET /api/csv-download?key=<DASHBOARD_SECRET>&url=<blob-url>` *(added 2026-07-06)*
+Authenticated proxy that streams a private CSV blob back to the dashboard. Necessary because private blobs aren't fetchable by direct URL from a browser — this endpoint fetches server-side (using `BLOB_READ_WRITE_TOKEN`) and pipes the content through, gated by the same `DASHBOARD_SECRET` as `dashboard-data.js`.
 
 ### `GET /api/dashboard-data?key=<DASHBOARD_SECRET>`
 Returns aggregated summary, by-city breakdown, rating distribution, and full event list. Used by `dashboard.html`.
@@ -124,8 +135,8 @@ Table: `events` (Neon PostgreSQL)
 | `travel_car_long_pct` | NUMERIC | Long-distance: car |
 | `travel_flight_pct` | NUMERIC | Long-distance: flight |
 | `local_distance_km` | NUMERIC | Default 8 km |
-| `long_distance_km` | NUMERIC | Default 300 km (or CSV-derived avg for non-PNW attendees) |
-| `flight_distance_km` | NUMERIC | Default 500 km |
+| `long_distance_km` | NUMERIC | Default 50 km *(updated 2026-07-06, was 300 km)* — or CSV-derived avg for non-PNW attendees |
+| `flight_distance_km` | NUMERIC | Default 50 km *(updated 2026-07-06, was 500 km — unified with the long-distance default rather than assuming a long-haul flight when there's no actual distance data)* |
 | `duration_hours` | NUMERIC | Event duration |
 | `venue_size_sqft` | NUMERIC | |
 | `energy_source` | TEXT | Grid EF value used |
@@ -161,7 +172,7 @@ Table: `events` (Neon PostgreSQL)
 | `swag_description` | TEXT | |
 | `products_sold` | TEXT | |
 | `luma_event_id` | TEXT | Stored on import; used to link CSV uploads and luma-travel data |
-| `luma_csv_url` | TEXT | *(planned 2026-07-02)* Vercel Blob URL of uploaded guest CSV |
+| `luma_csv_url` | TEXT | *(live 2026-07-06)* Private Vercel Blob URL of uploaded guest CSV — not directly fetchable; dashboard reaches it via `GET /api/csv-download` |
 | `avg_long_dist_km` | NUMERIC | Avg haversine distance for non-PNW attendees |
 | `avg_local_dist_km` | NUMERIC | Avg local trip distance |
 | `attendee_regions` | TEXT | JSON — region breakdown from luma-travel |
@@ -198,13 +209,19 @@ All trips assumed **round-trip** (distance × 2).
 | US PNW or national | 0.071 EPA Inter-City Rail | 0.062 EPA avg |
 | Blank | 0.071 (default) | 0.062 (default) |
 
-### Travel — Distance Calculation *(updated 2026-07-02)*
+### Travel — Distance Calculation *(updated 2026-07-06)*
 
-**Form submission (manual entry):** Fixed defaults — long-distance 300 km, local 8 km, flight 500 km. If a guest CSV is uploaded, the avg long-distance trip distance for non-PNW attendees replaces the 300 km default.
+**Form submission (manual entry):** Fixed defaults — long-distance 50 km, local 8 km, flight 50 km *(changed 2026-07-06, was 300/8/500 km)*. Rationale: assuming a long-haul (300 km drive / 500 km flight) trip when there's no actual distance data overstates emissions for the common case; a moderate flat assumption is more defensible than guessing "far" by default. If a guest CSV is uploaded, the avg long-distance trip distance for non-PNW attendees replaces the 50 km default.
+
+**Individual CSV responses with no resolvable zip** use the same 50 km fallback *(updated 2026-07-06, was 300 km)* — they still count toward mode % but their distance is unknown.
 
 **CSV upload or `/api/luma-travel`:** Per-attendee actual coordinates fetched from Zippopotam.us (free API, no key required — US 5-digit zips and Canadian FSA codes supported). Haversine distance calculated from attendee zip to event zip. The old bundled centroid table (state/province level) has been removed and replaced with this API.
 
-**PNW region override *(added 2026-07-02)*:** For the long-distance travel question ("mode of transport to the Pacific Northwest region"), attendees from BC (V-prefix postal), Washington (980–994), or Oregon (970–979) are automatically counted as local (N/A) regardless of their answer. Rationale: these attendees already live in the PNW region — their answer reflects local commute mode, not intercontinental travel. This applies in both the CSV parser and `luma-travel.js`.
+**PNW region override *(added 2026-07-02)*:** For the long-distance travel question ("mode of transport to the Pacific Northwest region"), attendees from BC (V-prefix postal), Washington (980–994), or Oregon (970–979) are automatically counted as local (N/A) regardless of their answer. Rationale: these attendees already live in the PNW region — their answer reflects local commute mode, not intercontinental travel. This applies in both the CSV parser and `luma-travel.js`. Mechanically this is implemented as a flat **haversine distance < 30 km** check per attendee, not a zip-prefix regex — anyone within 30 km of the venue gets the override, wherever they live.
+
+**CSV-vs-zip fill order bug fixed *(2026-07-06)*:** `parseLumaCSV()` used to read the event zip field once, at the moment the CSV finished parsing. If the organizer uploaded the CSV before typing the event zip, every attendee's distance came back null and the local-override/per-attendee math silently no-op'd — same CSV produced different percentages depending on fill order. Parsing is now split into `processPendingCSV()`, callable independently via `reprocessCSVIfLoaded()`, which re-runs automatically when the zip (on blur) or city (on change) are edited after the CSV is already loaded.
+
+**Percentage rounding fixed *(2026-07-06)*:** Travel mode percentages were rounded independently per field (`Math.round` on each), which could sum to 99 or 101 instead of 100. `apportionPercentages()` (largest-remainder method) now guarantees the set always sums to exactly 100. Fixed in both `index.html` and `dashboard.html`'s duplicated CSV-parsing logic.
 
 ### Energy
 
@@ -292,7 +309,7 @@ Luma's `get-guests` API only works for events the org calendar *owns*, not co-ho
 2. Fetches coordinates for all unique zips in parallel via Zippopotam.us
 3. Applies PNW region override (see §7 Travel Distance Calculation)
 4. Fills travel mode percentage fields
-5. Computes avg long-distance trip km for non-PNW attendees (overrides 300 km default)
+5. Computes avg long-distance trip km for non-PNW attendees (overrides 50 km default)
 
 **Three registration questions required on the Luma form:**
 1. "What is your current residential zip code?" — free response
@@ -308,15 +325,16 @@ Only works for events the org API key owns. Same three questions required. Same 
 
 **Limitation:** Events co-hosted by PNW Climate Week but owned by individual organizers return 403. Path A (CSV) is the workaround.
 
-### Vercel Blob — CSV file storage *(planned 2026-07-02)*
+### Vercel Blob — CSV file storage *(live 2026-07-06)*
 
-Blob store created and linked to project. `BLOB_READ_WRITE_TOKEN` auto-added by Vercel.
+Blob store created and linked to project, **private access**. `BLOB_READ_WRITE_TOKEN` auto-added by Vercel.
 
-**Remaining to build:**
-- Install `@vercel/blob` package
-- Create `api/upload-csv.js` endpoint (receives CSV text, stores to Blob, returns URL)
-- Add `luma_csv_url TEXT` column to events table via migration
-- Update frontend: on event log, upload CSV to Blob and save URL with event row
+**How it works end to end:**
+1. On event submit (or retroactive edit), the guest CSV is POSTed to `api/upload-csv.js`, which stores it via `put(path, content, {access:'private', ...})` and returns the blob URL.
+2. That URL is saved to `events.luma_csv_url`.
+3. The dashboard's events table links to it through `GET /api/csv-download?key=<DASHBOARD_SECRET>&url=<blob-url>` — an authenticated proxy, since private blobs 403 on direct fetch from a browser.
+
+**Bug fixed 2026-07-06:** `upload-csv.js` originally called `put()` with `access:'public'` against a store provisioned as private — every upload failed with a 500, and the frontend swallowed the error silently (`console.warn` only), so events kept saving with no CSV attached and nobody was told. Fixed by matching the store's actual access level and adding `api/csv-download.js` as the read path. The frontend now also surfaces upload failures to the submitter via toast instead of failing silently.
 
 ---
 
@@ -330,6 +348,7 @@ Blob store created and linked to project. `BLOB_READ_WRITE_TOKEN` auto-added by 
 - **Regional EFs:** Train and transit EFs adjust automatically based on event zip/postal code
 - **Regional energy defaults:** Auto-sets BC Hydro when city = Vancouver BC
 - **Inline user guide:** Contextual notes in every section
+- **Submit feedback *(reworked 2026-07-06)*:** Validation banner and post-submit toast are now fixed to top-center of the viewport rather than sitting next to the submit button at the bottom of a long form — previously, if an earlier field was invalid, the page would scroll/focus there while the actual warning message stayed off-screen at the bottom. Error toasts now stay up 9s and are click-to-dismiss (was 2.6s, no way to dismiss); success message reads "Event submitted successfully"
 - **SDG tagging:** Multi-select chips for UN Sustainable Development Goals
 - **Sustainable event partners:** Dynamic rows (partner name + category)
 - **Sustainability initiatives, wins, areas to improve:** Free-text reflection fields
@@ -349,6 +368,9 @@ Blob store created and linked to project. `BLOB_READ_WRITE_TOKEN` auto-added by 
 - Ratings distribution
 - Travel distance by event — for events linked to Luma, shows avg distances and region breakdown; "Pull from Luma" button fetches live data on demand
 - Full event table with export to CSV
+- **CSV column *(added 2026-07-06)*:** Links to each event's uploaded guest CSV via the authenticated `csv-download` proxy; shows "—" if none was uploaded
+- **Delete button *(added 2026-07-06)*:** Confirm-gated hard delete per event row (`DELETE /api/events?id=`), no undo
+- Edit button opens a modal to adjust travel percentages / re-upload a CSV retroactively — **bug fixed 2026-07-06:** `openEdit()` set `style.display=''` on a modal whose CSS class already declared `display:none`; clearing an inline style just falls back to the class rule, so the modal never actually appeared even though the fields populated correctly underneath. Now sets `'block'`
 - ⚠️ Flagged events (Below average / Needs improvement ratings)
 
 ---
@@ -389,11 +411,20 @@ curl -X POST https://pnwcw-sustainabilitytracker.vercel.app/api/migrate \
 
 ## 13. Open Items
 
-- **Vercel Blob CSV storage:** Blob store created 2026-07-02. Still need: install `@vercel/blob`, build `api/upload-csv.js`, add `luma_csv_url` DB column, wire frontend to upload on event save.
+None currently outstanding. (Vercel Blob CSV storage — the last open item — shipped and was tested end-to-end 2026-07-06; see Change Log.)
 
 ---
 
 ## 14. Change Log
+
+### 2026-07-06
+- **Fixed CSV upload entirely broken:** `upload-csv.js` called Blob's `put()` with `access:'public'` against a store provisioned as **private** — every upload 500'd, and the frontend only `console.warn`'d, so events kept saving with no CSV attached and nobody was told. Fixed by using `access:'private'` (correct, since these CSVs carry attendee names/emails/zips) and adding `api/csv-download.js`, an authenticated proxy gated by `DASHBOARD_SECRET` so the dashboard can still read them. Tested end-to-end against production: upload → event save → dashboard read → authenticated download all confirmed working; unauthenticated download and direct blob access both confirmed rejected (401/403).
+- **Fixed dashboard Edit modal not opening:** `openEdit()` set `style.display=''`, which fell back to the CSS class's `display:none` instead of showing the modal. Now sets `'block'`.
+- **Added Delete button** to the dashboard events table — confirm-gated hard delete via the (pre-existing but previously unwired) `DELETE /api/events` endpoint.
+- **Reworked submit feedback:** validation banner and toast moved from bottom-of-page/bottom-corner to fixed top-center, so they stay visible regardless of which field the page scrolls/focuses to. Error toasts extended from 2.6s to 9s and made click-to-dismiss. Wording changed from "Event saved" to "Event submitted successfully."
+- **Fixed percentage rounding:** travel mode percentages were rounded independently per field and could sum to 99 or 101. Added `apportionPercentages()` (largest-remainder method) in both `index.html` and `dashboard.html` so the set always sums to exactly 100.
+- **Fixed CSV-vs-zip fill-order bug:** uploading the Luma guest CSV before vs. after typing the event zip/city produced different results, because `parseLumaCSV()` read the zip field only once, at parse time. Split into `processPendingCSV()` + `reprocessCSVIfLoaded()`, which now re-runs the distance/local-override calculation whenever zip (on blur) or city (on change) are edited after the CSV is already loaded.
+- **Changed "no distance data" assumption from 300/500 km to 50 km** — applies to both the no-CSV manual-entry defaults (long-distance and flight) and individual CSV rows with an unresolvable zip. Rationale: assuming a long-haul trip by default overstated emissions when no actual distance data exists; 50 km is a more defensible flat assumption. Updated in `index.html`, `dashboard.html`, and the organizer-facing methodology guide (`calculator-logic.html`).
 
 ### 2026-07-02
 - **Vancouver WA added** as 7th city. Dropdown, header, footer, and Luma `matchCity()` all updated. `matchCity()` now uses full geo object to distinguish Vancouver BC (British Columbia) from Vancouver WA (Washington) by region/country field.

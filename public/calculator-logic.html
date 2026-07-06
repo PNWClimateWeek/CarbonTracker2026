@@ -152,7 +152,7 @@
 
           <div class="node node-action" style="font-size:13px;">
             <strong>Calculate distance to venue</strong><br>
-            <span style="color:#6b6b67;font-size:12px;margin-top:4px;display:block;">Straight-line (haversine) distance from each attendee's home zip to the venue. If zip lookup failed, we fall back to 300 km for long-distance and 8 km for local commute.</span>
+            <span style="color:#6b6b67;font-size:12px;margin-top:4px;display:block;">Straight-line (haversine) distance from each attendee's home zip to the venue. If zip lookup failed, we fall back to 50 km for long-distance and 8 km for local commute.</span>
           </div>
           <div class="arrow"></div>
 
@@ -203,7 +203,7 @@
 
           <div class="node node-warn" style="font-size:13px;">
             <strong>Fixed assumed distances</strong><br>
-            <span style="font-size:12px;font-weight:400;margin-top:4px;display:block;">Bus / train / car: <strong>300 km</strong>. Flights: <strong>500 km</strong>. Local commute: <strong>8 km</strong>. These are rough averages — no actual zip data.</span>
+            <span style="font-size:12px;font-weight:400;margin-top:4px;display:block;">Bus / train / car / flight: <strong>50 km</strong>. Local commute: <strong>8 km</strong>. These are rough averages — no actual zip data.</span>
           </div>
           <div class="arrow"></div>
 
@@ -302,7 +302,7 @@
     <div class="step">
       <div class="step-num">3</div>
       <div class="step-body">
-        <strong>Unrecognised or missing zip</strong> — that attendee's travel answers still count toward mode percentage breakdowns, but we can't calculate their actual distance. Instead, we use the fallback: 300 km for long-distance travel and 8 km for local commute. They are <em>not</em> excluded from the CO2 total.
+        <strong>Unrecognised or missing zip</strong> — that attendee's travel answers still count toward mode percentage breakdowns, but we can't calculate their actual distance. Instead, we use the fallback: 50 km for long-distance travel and 8 km for local commute. They are <em>not</em> excluded from the CO2 total.
         <div class="note">This means attendees who left the zip blank still contribute to the average — just with less precision than those who provided one.</div>
       </div>
     </div>
@@ -318,7 +318,7 @@
       total travel CO2  =  avg CO2 per respondent  ×  headcount
     </div>
     <div class="callout" style="margin-top:.75rem;">
-      <strong>Important:</strong> "respondent" means anyone who answered a travel question — zip code or not. Those without a recognisable zip still contribute to the average using fallback distances (300 km / 8 km). Those who left both travel questions blank are skipped entirely.
+      <strong>Important:</strong> "respondent" means anyone who answered a travel question — zip code or not. Those without a recognisable zip still contribute to the average using fallback distances (50 km / 8 km). Those who left both travel questions blank are skipped entirely.
     </div>
 
     <h3 style="margin-top:1.25rem;font-size:14px;font-weight:600;color:#1a1a18;">Where does "headcount" come from?</h3>
