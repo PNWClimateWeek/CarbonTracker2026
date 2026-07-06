@@ -442,6 +442,25 @@ function parseCSVTextDash(text){
   return rows;
 }
 
+// Largest-remainder rounding: independently rounding each mode's share can
+// sum to 99 or 101. This guarantees the returned percentages sum to exactly
+// 100 (or all 0 if total is 0).
+function apportionPercentagesDash(counts,keys,total){
+  var out={};
+  if(!total){keys.forEach(function(k){out[k]=0;});return out;}
+  var raw=keys.map(function(k){return (counts[k]||0)/total*100;});
+  var floors=raw.map(Math.floor);
+  var used=floors.reduce(function(a,b){return a+b;},0);
+  var remainder=100-used;
+  var order=keys.map(function(k,i){return i;})
+    .sort(function(a,b){return (raw[b]-floors[b])-(raw[a]-floors[a]);});
+  for(var i=0;i<order.length;i++){
+    floors[order[i]]+=(i<remainder)?1:0;
+  }
+  keys.forEach(function(k,i){out[k]=floors[i];});
+  return out;
+}
+
 function matchLongModeDash(val){
   var v=val.toLowerCase().trim();
   if(!v) return null;
@@ -528,7 +547,7 @@ function processEditCSV(){
           if(lm){longCounts[lm]=(longCounts[lm]||0)+1;longTotal++;}
           if(!isLocal&&distKm!==null) longDists.push(distKm);
           if(lm&&lm!=='local'){
-            var ld=distKm!==null?distKm:300;
+            var ld=distKm!==null?distKm:50;
             var lef=lm==='bus'?0.044:lm==='train'?tf.train:lm==='car-long'?0.191:lm==='flight'?0.255:0;
             csvLongCO2e+=ld*2*lef;
           }
@@ -542,16 +561,18 @@ function processEditCSV(){
         }
       }
       if(longTotal>0){
-        document.getElementById('e-local').value=Math.round((longCounts.local||0)/longTotal*100)||'';
-        document.getElementById('e-bus').value=Math.round((longCounts.bus||0)/longTotal*100)||'';
-        document.getElementById('e-train').value=Math.round((longCounts.train||0)/longTotal*100)||'';
-        document.getElementById('e-car-long').value=Math.round((longCounts['car-long']||0)/longTotal*100)||'';
-        document.getElementById('e-flight').value=Math.round((longCounts.flight||0)/longTotal*100)||'';
+        var longPctsDash=apportionPercentagesDash(longCounts,['local','bus','train','car-long','flight'],longTotal);
+        document.getElementById('e-local').value=longPctsDash.local||'';
+        document.getElementById('e-bus').value=longPctsDash.bus||'';
+        document.getElementById('e-train').value=longPctsDash.train||'';
+        document.getElementById('e-car-long').value=longPctsDash['car-long']||'';
+        document.getElementById('e-flight').value=longPctsDash.flight||'';
       }
       if(localTotal>0){
-        document.getElementById('e-walk').value=Math.round((localCounts.walk||0)/localTotal*100)||'';
-        document.getElementById('e-transit').value=Math.round((localCounts.transit||0)/localTotal*100)||'';
-        document.getElementById('e-car-local').value=Math.round((localCounts['car-local']||0)/localTotal*100)||'';
+        var localPctsDash=apportionPercentagesDash(localCounts,['walk','transit','car-local'],localTotal);
+        document.getElementById('e-walk').value=localPctsDash.walk||'';
+        document.getElementById('e-transit').value=localPctsDash.transit||'';
+        document.getElementById('e-car-local').value=localPctsDash['car-local']||'';
       }
       var avgKm=longDists.length>0?Math.round(longDists.reduce(function(a,b){return a+b;},0)/longDists.length):null;
       if(avgKm) document.getElementById('e-long-km').value=avgKm;

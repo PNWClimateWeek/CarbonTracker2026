@@ -252,10 +252,10 @@
       <div class="f"><label class="fl">Event name *</label><input type="text" id="ev-name" placeholder="e.g. Opening Ceremony"></div>
       <div class="f"><label class="fl">Date *</label><input type="date" id="ev-date"></div>
       <div class="f"><label class="fl">City *</label>
-        <select id="ev-city" onchange="autoSetEnergy()"><option>Tacoma</option><option>Bend</option><option>Seattle</option><option>Portland</option><option>Vancouver BC</option><option>Vancouver WA</option><option>Bellingham</option></select>
+        <select id="ev-city" onchange="autoSetEnergy();reprocessCSVIfLoaded();"><option>Tacoma</option><option>Bend</option><option>Seattle</option><option>Portland</option><option>Vancouver BC</option><option>Vancouver WA</option><option>Bellingham</option></select>
       </div>
       <div class="f"><label class="fl">Host / organizer *</label><input type="text" id="ev-host" placeholder="Name or org"></div>
-      <div class="f"><label class="fl">Event zip / postal code *</label><input type="text" id="ev-zip" placeholder="e.g. 98101 or V6B 1A1" oninput="updateRatingPreview()"></div>
+      <div class="f"><label class="fl">Event zip / postal code *</label><input type="text" id="ev-zip" placeholder="e.g. 98101 or V6B 1A1" oninput="updateRatingPreview()" onblur="reprocessCSVIfLoaded()"></div>
     </div>
     <div class="fg fg3">
       <div class="f"><label class="fl">Total attendees *</label><input type="number" id="ev-att" min="0" placeholder="0"></div>
@@ -598,8 +598,8 @@ function calcCO2(){
     tCO2=csvTravelPerPerson*(csvCheckedInCount||att);
   } else {
     var localDist=8;
-    var longDist=csvLongDistKm||300;
-    var flightDist=csvLongDistKm||500;
+    var longDist=csvLongDistKm||50;
+    var flightDist=csvLongDistKm||50;
     var tf=getTransitFactors();
     tCO2=0;
     tCO2+=att*(v('t-bus')/100)*longDist*2*0.044;
@@ -750,10 +750,10 @@ async function saveEventToBackend(evt){
         submitter_name:evt.submitterName||null,submitter_email:evt.submitterEmail||null,
         travel_local_pct:v('t-local'),travel_bus_pct:v('t-bus'),
         travel_train_pct:v('t-train'),travel_car_long_pct:v('t-car-long'),
-        travel_flight_pct:v('t-flight'),long_distance_km:csvLongDistKm||300,
+        travel_flight_pct:v('t-flight'),long_distance_km:csvLongDistKm||50,
         travel_walk_bike_pct:v('t-walk'),travel_transit_pct:v('t-transit'),
         travel_car_local_pct:v('t-car-local'),local_distance_km:null,
-        flight_distance_km:500,
+        flight_distance_km:csvLongDistKm||50,
         luma_event_id:document.getElementById('luma-event-id').value||null,
         luma_csv_url:csvUrl,
         duration_hours:v('en-hrs'),venue_size_sqft:v('en-sqft'),energy_source:sv('en-src'),
@@ -775,8 +775,8 @@ async function saveEventToBackend(evt){
       })
     });
     if(res.ok){
-      if(csvUploadFailed){showToast('Event saved, but CSV upload failed — please re-send the CSV to the team.','err');}
-      else{showToast('Event saved ✓');}
+      if(csvUploadFailed){showToast('Event submitted successfully, but CSV upload failed — please re-send the CSV to the team.','err');}
+      else{showToast('Event submitted successfully ✓');}
       loadLiveStats();
     }
     else{
@@ -914,6 +914,25 @@ function parseCSVText(text) {
   return rows;
 }
 
+// Largest-remainder rounding: independently rounding each mode's share can
+// sum to 99 or 101. This guarantees the returned percentages sum to exactly
+// 100 (or all 0 if total is 0).
+function apportionPercentages(counts,fields,total){
+  var out={};
+  if(!total){fields.forEach(function(id){out[id]=0;});return out;}
+  var raw=fields.map(function(id){return (counts[id]||0)/total*100;});
+  var floors=raw.map(Math.floor);
+  var used=floors.reduce(function(a,b){return a+b;},0);
+  var remainder=100-used;
+  var order=fields.map(function(id,i){return i;})
+    .sort(function(a,b){return (raw[b]-floors[b])-(raw[a]-floors[a]);});
+  for(var i=0;i<order.length;i++){
+    floors[order[i]]+=(i<remainder)?1:0;
+  }
+  fields.forEach(function(id,i){out[id]=floors[i];});
+  return out;
+}
+
 function matchLongMode(val) {
   var v=val.toLowerCase().trim();
   if(!v) return null;
@@ -939,11 +958,27 @@ function parseLumaCSV(input) {
   if(!file) return;
   document.getElementById('csv-filename').textContent=file.name;
   var reader=new FileReader();
-  reader.onload=async function(e){
+  reader.onload=function(e){
+    pendingCsvContent=e.target.result;
+    pendingCsvFilename=file.name;
+    processPendingCSV();
+  };
+  reader.readAsText(file);
+}
+
+// Re-parses the already-loaded CSV using whatever event zip/city are set
+// *right now*. Needed because zip/city may be filled in after the CSV is
+// uploaded — the distance/local-override math depends on them, so results
+// used to differ depending on fill order. Call this whenever zip or city
+// change, in addition to right after upload.
+function reprocessCSVIfLoaded(){
+  if(pendingCsvContent) processPendingCSV();
+}
+
+async function processPendingCSV(){
+    var file={name:pendingCsvFilename||'guests.csv'};
     try{
-      pendingCsvContent=e.target.result;
-      pendingCsvFilename=file.name;
-      var rows=parseCSVText(e.target.result);
+      var rows=parseCSVText(pendingCsvContent);
       if(rows.length<2){showCSVStatus('CSV appears empty.','err');return;}
 
       var headers=rows[0];
@@ -1025,7 +1060,7 @@ function parseLumaCSV(input) {
           if(lm){longCounts[lm]=(longCounts[lm]||0)+1;longTotal++;}
           if(!isLocal&&distKm!==null) longDists.push(distKm);
           if(lm&&lm!=='t-local'){
-            var ld=distKm!==null?distKm:300;
+            var ld=distKm!==null?distKm:50;
             var lef=lm==='t-bus'?0.044:lm==='t-train'?tf.train:lm==='t-car-long'?0.191:lm==='t-flight'?0.255:0;
             csvLongCO2+=ld*2*lef;
           }
@@ -1043,13 +1078,15 @@ function parseLumaCSV(input) {
       var localFields=['t-walk','t-transit','t-car-local'];
 
       if(longTotal>0){
+        var longPcts=apportionPercentages(longCounts,longFields,longTotal);
         longFields.forEach(function(id){
-          document.getElementById(id).value=Math.round((longCounts[id]||0)/longTotal*100)||'';
+          document.getElementById(id).value=longPcts[id]||'';
         });
       }
       if(localTotal>0){
+        var localPcts=apportionPercentages(localCounts,localFields,localTotal);
         localFields.forEach(function(id){
-          document.getElementById(id).value=Math.round((localCounts[id]||0)/localTotal*100)||'';
+          document.getElementById(id).value=localPcts[id]||'';
         });
       }
       checkTravel();
@@ -1070,8 +1107,6 @@ function parseLumaCSV(input) {
     }catch(err){
       showCSVStatus('Could not parse CSV: '+err.message,'err');
     }
-  };
-  reader.readAsText(file);
 }
 
 function showCSVStatus(msg,type){
