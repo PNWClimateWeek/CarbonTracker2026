@@ -65,6 +65,8 @@
     .btn-ghost:hover { border-color:#bbb; }
     .btn-edit { background:none; border:1px solid #e0e0e0; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:600; font-family:inherit; cursor:pointer; color:#6b6b67; }
     .btn-edit:hover { border-color:#1D9E75; color:#1D9E75; }
+    .btn-delete { background:none; border:1px solid #e0e0e0; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:600; font-family:inherit; cursor:pointer; color:#6b6b67; margin-left:6px; }
+    .btn-delete:hover { border-color:#A32D2D; color:#A32D2D; }
   </style>
   <style>
     .gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f3; }
@@ -262,7 +264,8 @@ function render(d){
       '<td>'+badge(e.rating)+'</td>'+
       '<td>'+(e.submitter_name||'—')+'</td>'+
       '<td>'+(e.luma_csv_url?'<a href="/api/csv-download?key='+PASS+'&url='+encodeURIComponent(e.luma_csv_url)+'" target="_blank" rel="noopener">CSV</a>':'—')+'</td>'+
-      '<td><button class="btn-edit" onclick="openEdit(\''+e.id+'\')">Edit</button></td>'+
+      '<td><button class="btn-edit" onclick="openEdit(\''+e.id+'\')">Edit</button>'+
+        '<button class="btn-delete" onclick="deleteEventRow(\''+e.id+'\',\''+(e.event_name||'').replace(/'/g,"\\'")+'\')">Delete</button></td>'+
     '</tr>';
   }).join('')||'<tr><td colspan="10" style="color:#9e9e99;padding:1rem;">No events yet.</td></tr>';
   html+='<div class="row-between"><h2>All events</h2><button class="btn" onclick="exportCSV()">Export CSV</button></div>'+
@@ -412,6 +415,15 @@ function closeEdit(){
 }
 
 document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEdit();});
+
+async function deleteEventRow(id,name){
+  if(!confirm('Delete "'+(name||'this event')+'"? This cannot be undone.'))return;
+  try{
+    var res=await fetch('/api/events?id='+encodeURIComponent(id),{method:'DELETE'});
+    if(!res.ok){var data=await res.json().catch(function(){return{};});alert('Delete failed: '+(data.error||res.status));return;}
+    loadData();
+  }catch(e){alert('Delete failed — network error: '+e.message);}
+}
 
 function parseCSVTextDash(text){
   var rows=[],lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
