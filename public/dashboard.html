@@ -261,7 +261,7 @@ function render(d){
       '<td>'+n(e.total_co2e_kg,1)+' kg</td>'+
       '<td>'+badge(e.rating)+'</td>'+
       '<td>'+(e.submitter_name||'—')+'</td>'+
-      '<td>'+(e.luma_csv_url?'<a href="'+e.luma_csv_url+'" target="_blank" rel="noopener">CSV</a>':'—')+'</td>'+
+      '<td>'+(e.luma_csv_url?'<a href="/api/csv-download?key='+PASS+'&url='+encodeURIComponent(e.luma_csv_url)+'" target="_blank" rel="noopener">CSV</a>':'—')+'</td>'+
       '<td><button class="btn-edit" onclick="openEdit(\''+e.id+'\')">Edit</button></td>'+
     '</tr>';
   }).join('')||'<tr><td colspan="10" style="color:#9e9e99;padding:1rem;">No events yet.</td></tr>';
@@ -402,7 +402,7 @@ function openEdit(id){
   document.getElementById('e-transit').value=e.travel_transit_pct!=null?Math.round(e.travel_transit_pct):'';
   document.getElementById('e-car-local').value=e.travel_car_local_pct!=null?Math.round(e.travel_car_local_pct):'';
   document.getElementById('e-long-km').value=e.avg_long_dist_km||e.long_distance_km||300;
-  document.getElementById('edit-modal').style.display='';
+  document.getElementById('edit-modal').style.display='block';
   recalcEdit();
 }
 

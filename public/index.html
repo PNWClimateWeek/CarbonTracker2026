@@ -717,7 +717,7 @@ async function saveEventToBackend(evt){
   btn.disabled=true;btn.textContent='Saving…';
 
   // Upload CSV to Blob if one was provided
-  var csvUrl=null;
+  var csvUrl=null,csvUploadFailed=false;
   if(pendingCsvContent){
     try{
       var lumaId=document.getElementById('luma-event-id').value||null;
@@ -726,7 +726,8 @@ async function saveEventToBackend(evt){
         body:JSON.stringify({filename:pendingCsvFilename,content:pendingCsvContent,event_id:lumaId})
       });
       if(upRes.ok){var upData=await upRes.json();csvUrl=upData.url||null;}
-    }catch(e){console.warn('CSV upload failed:',e);}
+      else{csvUploadFailed=true;console.warn('CSV upload failed:',await upRes.text());}
+    }catch(e){csvUploadFailed=true;console.warn('CSV upload failed:',e);}
   }
 
   try{
@@ -763,7 +764,11 @@ async function saveEventToBackend(evt){
         event_partners:getPartners()
       })
     });
-    if(res.ok){showToast('Event saved ✓');loadLiveStats();}
+    if(res.ok){
+      if(csvUploadFailed){showToast('Event saved, but CSV upload failed — please re-send the CSV to the team.','err');}
+      else{showToast('Event saved ✓');}
+      loadLiveStats();
+    }
     else{
       var errText=await res.text();
       var errDetail='';

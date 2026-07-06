@@ -17,11 +17,12 @@ module.exports = async function handler(req, res) {
 
   try {
     const { url } = await put(path, content, {
-      access: 'public',
+      access: 'private',
       contentType: 'text/csv',
     });
     return res.status(200).json({ url });
   } catch (err) {
+    console.error('upload-csv failed:', err.message);
     return res.status(500).json({ error: 'Upload failed', detail: err.message });
   }
 };
