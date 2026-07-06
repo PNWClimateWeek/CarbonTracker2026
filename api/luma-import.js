@@ -1,9 +1,19 @@
-const PNW_CITIES = ['Tacoma', 'Bend', 'Seattle', 'Portland', 'Vancouver BC', 'Bellingham'];
+const PNW_CITIES = ['Tacoma', 'Bend', 'Seattle', 'Portland', 'Vancouver BC', 'Vancouver WA', 'Bellingham'];
 
-function matchCity(lumaCity) {
-  if (!lumaCity) return null;
-  const lower = lumaCity.toLowerCase();
-  return PNW_CITIES.find(c => c.toLowerCase().split(' ')[0] === lower.split(' ')[0]) || null;
+function matchCity(geo) {
+  const city = (geo.city || '').toLowerCase().trim();
+  if (!city) return null;
+
+  // Vancouver needs state/country disambiguation
+  if (city === 'vancouver') {
+    const region  = (geo.region || geo.state || geo.province || '').toLowerCase();
+    const country = (geo.country || '').toLowerCase();
+    if (region.includes('british columbia') || region === 'bc' || country.includes('canada')) return 'Vancouver BC';
+    if (region.includes('washington') || region === 'wa' || country.includes('united states')) return 'Vancouver WA';
+    return null; // can't distinguish — leave blank
+  }
+
+  return PNW_CITIES.find(c => c.toLowerCase().split(' ')[0] === city.split(' ')[0]) || null;
 }
 
 function extractPostal(geo) {
@@ -23,7 +33,7 @@ function formatEvent(ev, hosts, guestCount) {
   return {
     event_name:     ev.name || null,
     date:           ev.start_at ? ev.start_at.slice(0, 10) : null,
-    city:           matchCity(geo.city),
+    city:           matchCity(geo),
     venue_name:     geo.full_address || geo.description || null,
     duration_hours: durationHours,
     attendees:      ev.ticket_count?.sold || ev.guest_count || guestCount || null,
@@ -83,7 +93,7 @@ async function fetchViaPage(eventId) {
       return {
         event_name:     ev.name || null,
         date:           ev.startDate ? ev.startDate.slice(0, 10) : null,
-        city:           matchCity(addr.addressLocality || loc.name),
+        city:           matchCity({ city: addr.addressLocality || loc.name, region: addr.addressRegion, country: addr.addressCountry }),
         venue_name:     loc.name || null,
         duration_hours: (ev.startDate && ev.endDate)
           ? (new Date(ev.endDate) - new Date(ev.startDate)) / 3600000

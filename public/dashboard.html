@@ -44,6 +44,27 @@
     .flags { background: #FFF8F8; border: 1px solid #F4C0C0; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.5rem; }
     .flags h2 { color: #A32D2D; }
     @media(max-width:640px){ .grid{grid-template-columns:repeat(2,1fr);} table{font-size:12px;} }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; overflow-y:auto; padding:2rem 1rem; display:none; }
+    .modal-box { background:#fff; border-radius:12px; max-width:580px; margin:0 auto; padding:2rem; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
+    .modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:#9e9e99; line-height:1; padding:0; }
+    .m-section { font-size:11px; font-weight:700; color:#9e9e99; text-transform:uppercase; letter-spacing:.05em; margin:1.25rem 0 .6rem; }
+    .m-section:first-of-type { margin-top:0; }
+    .m-row { display:grid; gap:8px; margin-bottom:.5rem; }
+    .m-row-5 { grid-template-columns:repeat(5,1fr); }
+    .m-row-3 { grid-template-columns:repeat(3,1fr); }
+    .m-row-1 { grid-template-columns:1fr; }
+    .m-field label { font-size:11px; color:#9e9e99; display:block; margin-bottom:3px; }
+    .m-field input { width:100%; padding:7px 10px; font-size:13px; font-family:inherit; border:1px solid #e0e0e0; border-radius:7px; outline:none; }
+    .m-field input:focus { border-color:#1D9E75; }
+    .co2-preview { background:#f5f5f3; border-radius:8px; padding:1rem; margin-top:1rem; }
+    .co2-row { display:flex; justify-content:space-between; font-size:13px; padding:3px 0; }
+    .co2-row.total { font-weight:700; border-top:1px solid #e0e0e0; margin-top:4px; padding-top:8px; }
+    .e-warn { color:#A32D2D; font-size:13px; margin-top:.75rem; display:none; }
+    .btn-ghost { background:none; border:1px solid #e0e0e0; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; color:#6b6b67; }
+    .btn-ghost:hover { border-color:#bbb; }
+    .btn-edit { background:none; border:1px solid #e0e0e0; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:600; font-family:inherit; cursor:pointer; color:#6b6b67; }
+    .btn-edit:hover { border-color:#1D9E75; color:#1D9E75; }
   </style>
   <style>
     .gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f3; }
@@ -76,6 +97,57 @@
   <div id="content"><div class="loading">Fetching data…</div></div>
 </div>
 </div>
+<div id="edit-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="edit-title" style="font-size:15px;">Edit event</h2>
+      <button class="modal-close" onclick="closeEdit()">✕</button>
+    </div>
+
+    <div class="m-section">Long-distance travel — must total 100%</div>
+    <div class="m-row m-row-5">
+      <div class="m-field"><label>Local/PNW %</label><input id="e-local" type="number" min="0" max="100" oninput="recalcEdit()"></div>
+      <div class="m-field"><label>Bus %</label><input id="e-bus" type="number" min="0" max="100" oninput="recalcEdit()"></div>
+      <div class="m-field"><label>Train %</label><input id="e-train" type="number" min="0" max="100" oninput="recalcEdit()"></div>
+      <div class="m-field"><label>Car %</label><input id="e-car-long" type="number" min="0" max="100" oninput="recalcEdit()"></div>
+      <div class="m-field"><label>Flight %</label><input id="e-flight" type="number" min="0" max="100" oninput="recalcEdit()"></div>
+    </div>
+
+    <div class="m-section">Local travel — must total 100%</div>
+    <div class="m-row m-row-3">
+      <div class="m-field"><label>Walk / Bike %</label><input id="e-walk" type="number" min="0" max="100" oninput="recalcEdit()"></div>
+      <div class="m-field"><label>Transit %</label><input id="e-transit" type="number" min="0" max="100" oninput="recalcEdit()"></div>
+      <div class="m-field"><label>Car %</label><input id="e-car-local" type="number" min="0" max="100" oninput="recalcEdit()"></div>
+    </div>
+
+    <div class="m-section">Avg long-distance trip (km)</div>
+    <div class="m-row m-row-1">
+      <div class="m-field"><label>Distance km (used for bus/train/car/flight CO2)</label><input id="e-long-km" type="number" min="0" oninput="recalcEdit()"></div>
+    </div>
+
+    <div class="m-section">CSV upload (optional — auto-fills travel %s and distance)</div>
+    <input type="file" id="e-csv" accept=".csv" onchange="processEditCSV()" style="font-size:13px;">
+    <div id="e-csv-status" style="font-size:12px;margin-top:6px;min-height:16px;"></div>
+
+    <div class="co2-preview">
+      <div class="co2-row"><span>Travel CO2</span><span id="e-travel-co2">—</span></div>
+      <div class="co2-row"><span>Energy CO2 (unchanged)</span><span id="e-energy-co2">—</span></div>
+      <div class="co2-row"><span>Catering CO2 (unchanged)</span><span id="e-catering-co2">—</span></div>
+      <div class="co2-row"><span>Waste CO2 (unchanged)</span><span id="e-waste-co2">—</span></div>
+      <div class="co2-row"><span>Materials CO2 (unchanged)</span><span id="e-materials-co2">—</span></div>
+      <div class="co2-row total"><span>Total</span><span id="e-total-co2">—</span></div>
+      <div class="co2-row total"><span>Per attendee</span><span id="e-per-att">—</span></div>
+    </div>
+
+    <div class="e-warn" id="edit-warn"></div>
+
+    <div style="display:flex;gap:10px;margin-top:1.5rem;">
+      <button class="btn" id="e-save-btn" onclick="saveEdit()">Save changes</button>
+      <button class="btn-ghost" onclick="closeEdit()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 var PASS='pnwcw2026';
 
@@ -178,7 +250,9 @@ function render(d){
       '</tr></thead><tbody>'+distRows+'</tbody></table></div></div>';
   }
 
+  window._eventsById={};
   var evRows=(d.events||[]).map(function(e){
+    window._eventsById[e.id]=e;
     return '<tr><td><strong>'+(e.event_name||'—')+'</strong></td>'+
       '<td>'+(e.event_date?e.event_date.slice(0,10):'—')+'</td>'+
       '<td>'+(e.city||'—')+'</td>'+
@@ -187,10 +261,12 @@ function render(d){
       '<td>'+n(e.total_co2e_kg,1)+' kg</td>'+
       '<td>'+badge(e.rating)+'</td>'+
       '<td>'+(e.submitter_name||'—')+'</td>'+
+      '<td>'+(e.luma_csv_url?'<a href="'+e.luma_csv_url+'" target="_blank" rel="noopener">CSV</a>':'—')+'</td>'+
+      '<td><button class="btn-edit" onclick="openEdit(\''+e.id+'\')">Edit</button></td>'+
     '</tr>';
-  }).join('')||'<tr><td colspan="8" style="color:#9e9e99;padding:1rem;">No events yet.</td></tr>';
+  }).join('')||'<tr><td colspan="10" style="color:#9e9e99;padding:1rem;">No events yet.</td></tr>';
   html+='<div class="row-between"><h2>All events</h2><button class="btn" onclick="exportCSV()">Export CSV</button></div>'+
-    '<div class="table-wrap"><table><thead><tr><th>Event</th><th>Date</th><th>City</th><th>Attendees</th><th>Per person</th><th>Total CO2e</th><th>Rating</th><th>Submitted by</th></tr></thead><tbody>'+evRows+'</tbody></table></div>';
+    '<div class="table-wrap"><table><thead><tr><th>Event</th><th>Date</th><th>City</th><th>Attendees</th><th>Per person</th><th>Total CO2e</th><th>Rating</th><th>Submitted by</th><th>CSV</th><th></th></tr></thead><tbody>'+evRows+'</tbody></table></div>';
 
   var flags=(d.events||[]).filter(function(e){return e.rating==='Needs improvement'||e.rating==='Below average';});
   if(flags.length){
@@ -223,6 +299,302 @@ function loadTravelData(eventId, btn){
     })
     .catch(function(){btn.textContent='Error';btn.disabled=false;});
 }
+
+// ── Edit modal ────────────────────────────────────────────────────────────
+var CITY_COORDS={
+  'Vancouver BC':{lat:49.282,lon:-123.116},
+  'Victoria BC':{lat:48.428,lon:-123.365},
+  'Kelowna BC':{lat:49.888,lon:-119.496},
+  'Seattle':{lat:47.606,lon:-122.332},
+  'Portland':{lat:45.523,lon:-122.676},
+  'Bellingham':{lat:48.750,lon:-122.476},
+  'Vancouver WA':{lat:45.638,lon:-122.661},
+  'Tacoma':{lat:47.253,lon:-122.444},
+  'Bend':{lat:44.058,lon:-121.315}
+};
+
+var editEvent=null,editCsvContent=null,editCsvFilename=null,editCsvTravelPerPerson=null,editCsvCheckedInCount=null;
+
+function ev(id){return parseFloat(document.getElementById(id).value)||0;}
+
+function haversineDash(lat1,lon1,lat2,lon2){
+  var R=6371,dL=(lat2-lat1)*Math.PI/180,dO=(lon2-lon1)*Math.PI/180;
+  var a=Math.sin(dL/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dO/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+async function fetchZipCoordsDash(zip){
+  if(!zip) return null;
+  var z=zip.trim().toUpperCase().replace(/\s/g,'');
+  if(!z) return null;
+  var url;
+  if(/^[A-Z]/.test(z)){
+    url='https://api.zippopotam.us/ca/'+encodeURIComponent(z.substring(0,3));
+  } else {
+    var digits=z.replace(/\D/g,'');
+    if(digits.length!==5) return null;
+    url='https://api.zippopotam.us/us/'+digits;
+  }
+  try{
+    var res=await fetch(url);
+    if(!res.ok) return null;
+    var data=await res.json();
+    var place=data.places&&data.places[0];
+    if(!place) return null;
+    var lat=parseFloat(place.latitude),lon=parseFloat(place.longitude);
+    return (isFinite(lat)&&isFinite(lon))?{lat:lat,lon:lon}:null;
+  }catch(e){return null;}
+}
+
+function getEditTransitFactors(city){
+  if(city==='Vancouver BC') return{train:0.008,transit:0.008};
+  if(city==='Victoria BC'||city==='Kelowna BC') return{train:0.008,transit:0.062};
+  return{train:0.071,transit:0.062};
+}
+
+function recalcEdit(){
+  if(!editEvent) return;
+  var att=parseInt(editEvent.total_attendees)||1;
+  var tCO2;
+  if(editCsvTravelPerPerson!==null){
+    tCO2=editCsvTravelPerPerson*(editCsvCheckedInCount||att);
+  } else {
+    var longKm=parseFloat(document.getElementById('e-long-km').value)||300;
+    var tf=getEditTransitFactors(editEvent.city);
+    tCO2=0;
+    tCO2+=att*(ev('e-bus')/100)*longKm*2*0.044;
+    tCO2+=att*(ev('e-train')/100)*longKm*2*tf.train;
+    tCO2+=att*(ev('e-car-long')/100)*longKm*2*0.191;
+    tCO2+=att*(ev('e-flight')/100)*longKm*2*0.255;
+    tCO2+=att*(ev('e-transit')/100)*8*2*tf.transit;
+    tCO2+=att*(ev('e-car-local')/100)*8*2*0.191;
+  }
+  var eCO2=parseFloat(editEvent.energy_co2_kg)||0;
+  var cCO2=parseFloat(editEvent.catering_co2_kg)||0;
+  var wCO2=parseFloat(editEvent.waste_co2_kg)||0;
+  var mCO2=parseFloat(editEvent.materials_co2_kg)||0;
+  var total=tCO2+eCO2+cCO2+wCO2+mCO2;
+  var perAtt=total/att;
+  document.getElementById('e-travel-co2').textContent=tCO2.toFixed(1)+' kg';
+  document.getElementById('e-energy-co2').textContent=eCO2.toFixed(1)+' kg';
+  document.getElementById('e-catering-co2').textContent=cCO2.toFixed(1)+' kg';
+  document.getElementById('e-waste-co2').textContent=wCO2.toFixed(1)+' kg';
+  document.getElementById('e-materials-co2').textContent=mCO2.toFixed(1)+' kg';
+  document.getElementById('e-total-co2').textContent=total.toFixed(1)+' kg';
+  document.getElementById('e-per-att').textContent=perAtt.toFixed(2)+' kg CO2e';
+  editEvent._newTravelCO2=tCO2;editEvent._newTotalCO2=total;editEvent._newPerAtt=perAtt;
+}
+
+function openEdit(id){
+  var e=window._eventsById&&window._eventsById[id];
+  if(!e) return;
+  editEvent=e;editCsvContent=null;editCsvFilename=null;editCsvTravelPerPerson=null;editCsvCheckedInCount=null;
+  document.getElementById('e-csv-status').textContent='';
+  document.getElementById('e-csv').value='';
+  document.getElementById('edit-warn').style.display='none';
+  document.getElementById('edit-title').textContent='Edit: '+e.event_name;
+  document.getElementById('e-local').value=e.travel_local_pct!=null?Math.round(e.travel_local_pct):'';
+  document.getElementById('e-bus').value=e.travel_bus_pct!=null?Math.round(e.travel_bus_pct):'';
+  document.getElementById('e-train').value=e.travel_train_pct!=null?Math.round(e.travel_train_pct):'';
+  document.getElementById('e-car-long').value=e.travel_car_long_pct!=null?Math.round(e.travel_car_long_pct):'';
+  document.getElementById('e-flight').value=e.travel_flight_pct!=null?Math.round(e.travel_flight_pct):'';
+  document.getElementById('e-walk').value=e.travel_walk_bike_pct!=null?Math.round(e.travel_walk_bike_pct):'';
+  document.getElementById('e-transit').value=e.travel_transit_pct!=null?Math.round(e.travel_transit_pct):'';
+  document.getElementById('e-car-local').value=e.travel_car_local_pct!=null?Math.round(e.travel_car_local_pct):'';
+  document.getElementById('e-long-km').value=e.avg_long_dist_km||e.long_distance_km||300;
+  document.getElementById('edit-modal').style.display='';
+  recalcEdit();
+}
+
+function closeEdit(){
+  document.getElementById('edit-modal').style.display='none';
+  editEvent=null;
+}
+
+document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEdit();});
+
+function parseCSVTextDash(text){
+  var rows=[],lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  for(var i=0;i<lines.length;i++){
+    var row=[],line=lines[i],field='',inQ=false;
+    for(var j=0;j<line.length;j++){
+      var c=line[j];
+      if(c==='"'&&!inQ){inQ=true;}
+      else if(c==='"'&&inQ){if(line[j+1]==='"'){field+='"';j++;}else{inQ=false;}}
+      else if(c===','&&!inQ){row.push(field.trim());field='';}
+      else{field+=c;}
+    }
+    row.push(field.trim());
+    if(row.some(function(f){return f;}))rows.push(row);
+  }
+  return rows;
+}
+
+function matchLongModeDash(val){
+  var v=val.toLowerCase().trim();
+  if(!v) return null;
+  if(v.includes('n/a')||v==='local') return 'local';
+  if(v.includes('flight')||v.includes('fly')||v.includes('plane')||v.includes('air')) return 'flight';
+  if(v.includes('train')||v.includes('rail')) return 'train';
+  if(v.includes('bus')||v.includes('coach')) return 'bus';
+  if(v.includes('car')||v.includes('driv')||v.includes('drove')||v.includes('rideshare')) return 'car-long';
+  return null;
+}
+
+function matchLocalModeDash(val){
+  var v=val.toLowerCase().trim();
+  if(!v) return null;
+  if(v.includes('walk')||v.includes('bike')||v.includes('cycl')||v.includes('scoot')) return 'walk';
+  if(v.includes('transit')||v.includes('bus')||v.includes('metro')||v.includes('subway')||v.includes('skytrain')||v.includes('train')) return 'transit';
+  if(v.includes('car')||v.includes('driv')||v.includes('drove')||v.includes('rideshare')||v.includes('uber')||v.includes('lyft')||v.includes('taxi')) return 'car-local';
+  return null;
+}
+
+function setCSVStatus(msg,type){
+  var el=document.getElementById('e-csv-status');
+  el.style.color=type==='err'?'#A32D2D':type==='info'?'#9e9e99':'#1D9E75';
+  el.textContent=msg;
+}
+
+function processEditCSV(){
+  var input=document.getElementById('e-csv');
+  var file=input.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      editCsvContent=e.target.result;editCsvFilename=file.name;
+      var rows=parseCSVTextDash(e.target.result);
+      if(rows.length<2){setCSVStatus('CSV appears empty.','err');return;}
+      var headers=rows[0];
+      var zipCol       =headers.findIndex(function(h){return h.toLowerCase().includes('residential zip');});
+      var longCol      =headers.findIndex(function(h){return h.toLowerCase().includes('pacific northwest');});
+      var localCol     =headers.findIndex(function(h){return h.toLowerCase().includes('to and from');});
+      var checkedInCol =headers.findIndex(function(h){return h.toLowerCase()==='checked_in_at';});
+      if(longCol===-1&&localCol===-1){setCSVStatus('No travel questions found — check CSV headers.','err');return;}
+      var cityCoords=CITY_COORDS[editEvent.city]||null;
+      var allZips=new Set();
+      for(var i=1;i<rows.length;i++){var z=zipCol!==-1?(rows[i][zipCol]||'').trim():'';if(z)allZips.add(z);}
+      setCSVStatus('Looking up zip coordinates…','info');
+      var zipList=Array.from(allZips);
+      var coordResults=await Promise.all(zipList.map(function(z){return fetchZipCoordsDash(z);}));
+      var coordMap={};zipList.forEach(function(z,idx){if(coordResults[idx])coordMap[z]=coordResults[idx];});
+      var hasCheckinData=false;
+      if(checkedInCol!==-1){
+        for(var i=1;i<rows.length;i++){
+          if((rows[i][checkedInCol]||'').trim()){hasCheckinData=true;break;}
+        }
+      }
+      var longCounts={local:0,bus:0,train:0,'car-long':0,flight:0};
+      var localCounts={walk:0,transit:0,'car-local':0};
+      var longTotal=0,localTotal=0,longDists=[],overrideCount=0;
+      var csvLongCO2e=0,csvLocCO2e=0,csvRespCnt=0;
+      var csvCheckedInTotal=0;
+      var tf=getEditTransitFactors(editEvent.city);
+      for(var i=1;i<rows.length;i++){
+        var row=rows[i];
+
+        if(hasCheckinData){
+          var ci=(row[checkedInCol]||'').trim();
+          if(!ci) continue; // not checked in, skip
+          csvCheckedInTotal++;
+        }
+
+        var longVal=longCol!==-1?(row[longCol]||''):'';
+        var localVal=localCol!==-1?(row[localCol]||''):'';
+        var zipVal=zipCol!==-1?(row[zipCol]||'').trim():'';
+        if(!longVal&&!localVal) continue;
+        csvRespCnt++;
+        var distKm=null;
+        if(cityCoords&&zipVal&&coordMap[zipVal]){
+          var c=coordMap[zipVal];distKm=haversineDash(c.lat,c.lon,cityCoords.lat,cityCoords.lon);
+        }
+        var isLocal=distKm!==null&&distKm<30;
+        if(longVal){
+          var answered=matchLongModeDash(longVal);
+          var lm=isLocal?'local':answered;
+          if(isLocal&&answered&&answered!=='local') overrideCount++;
+          if(lm){longCounts[lm]=(longCounts[lm]||0)+1;longTotal++;}
+          if(!isLocal&&distKm!==null) longDists.push(distKm);
+          if(lm&&lm!=='local'){
+            var ld=distKm!==null?distKm:300;
+            var lef=lm==='bus'?0.044:lm==='train'?tf.train:lm==='car-long'?0.191:lm==='flight'?0.255:0;
+            csvLongCO2e+=ld*2*lef;
+          }
+        }
+        if(localVal){
+          var lcm=matchLocalModeDash(localVal);
+          if(lcm){localCounts[lcm]=(localCounts[lcm]||0)+1;localTotal++;}
+          var localD=isLocal?(distKm||8):8;
+          var lef2=lcm==='transit'?tf.transit:lcm==='car-local'?0.191:0;
+          csvLocCO2e+=localD*2*lef2;
+        }
+      }
+      if(longTotal>0){
+        document.getElementById('e-local').value=Math.round((longCounts.local||0)/longTotal*100)||'';
+        document.getElementById('e-bus').value=Math.round((longCounts.bus||0)/longTotal*100)||'';
+        document.getElementById('e-train').value=Math.round((longCounts.train||0)/longTotal*100)||'';
+        document.getElementById('e-car-long').value=Math.round((longCounts['car-long']||0)/longTotal*100)||'';
+        document.getElementById('e-flight').value=Math.round((longCounts.flight||0)/longTotal*100)||'';
+      }
+      if(localTotal>0){
+        document.getElementById('e-walk').value=Math.round((localCounts.walk||0)/localTotal*100)||'';
+        document.getElementById('e-transit').value=Math.round((localCounts.transit||0)/localTotal*100)||'';
+        document.getElementById('e-car-local').value=Math.round((localCounts['car-local']||0)/localTotal*100)||'';
+      }
+      var avgKm=longDists.length>0?Math.round(longDists.reduce(function(a,b){return a+b;},0)/longDists.length):null;
+      if(avgKm) document.getElementById('e-long-km').value=avgKm;
+      editCsvTravelPerPerson=csvRespCnt>0?(csvLongCO2e+csvLocCO2e)/csvRespCnt:null;
+      editCsvCheckedInCount=hasCheckinData?csvCheckedInTotal:null;
+      recalcEdit();
+      var parts=[];
+      if(editCsvCheckedInCount) parts.push(editCsvCheckedInCount+' checked in');
+      if(longTotal>0) parts.push(longTotal+' long-distance responses');
+      if(localTotal>0) parts.push(localTotal+' local responses');
+      if(overrideCount>0) parts.push(overrideCount+' corrected to local (<30 km)');
+      setCSVStatus('✓ '+file.name+' — '+parts.join(' · '),'ok');
+    }catch(err){setCSVStatus('Could not parse CSV: '+err.message,'err');}
+  };
+  reader.readAsText(file);
+}
+
+async function saveEdit(){
+  if(!editEvent) return;
+  var warn=document.getElementById('edit-warn');
+  warn.style.display='none';
+  var longTot=ev('e-local')+ev('e-bus')+ev('e-train')+ev('e-car-long')+ev('e-flight');
+  var localTot=ev('e-walk')+ev('e-transit')+ev('e-car-local');
+  if(Math.abs(longTot-100)>1){warn.style.display='';warn.textContent='Long-distance travel must total 100% (currently '+Math.round(longTot)+'%).';return;}
+  if(Math.abs(localTot-100)>1){warn.style.display='';warn.textContent='Local travel must total 100% (currently '+Math.round(localTot)+'%).';return;}
+  var btn=document.getElementById('e-save-btn');
+  btn.textContent='Saving…';btn.disabled=true;
+  var csvUrl=null;
+  if(editCsvContent){
+    try{
+      var upRes=await fetch('/api/upload-csv',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:editCsvFilename,content:editCsvContent,event_id:editEvent.id})});
+      var upData=await upRes.json();
+      if(upData.url) csvUrl=upData.url;
+      else throw new Error(upData.error||'Upload failed');
+    }catch(e){warn.style.display='';warn.textContent='CSV upload failed: '+e.message;btn.textContent='Save changes';btn.disabled=false;return;}
+  }
+  var longKm=parseFloat(document.getElementById('e-long-km').value)||300;
+  var payload={
+    travel_local_pct:ev('e-local'),travel_bus_pct:ev('e-bus'),travel_train_pct:ev('e-train'),
+    travel_car_long_pct:ev('e-car-long'),travel_flight_pct:ev('e-flight'),
+    travel_walk_bike_pct:ev('e-walk'),travel_transit_pct:ev('e-transit'),travel_car_local_pct:ev('e-car-local'),
+    long_distance_km:longKm,avg_long_dist_km:longKm,
+    travel_co2_kg:editEvent._newTravelCO2,
+    total_co2e_kg:editEvent._newTotalCO2,
+    per_attendee_co2e_kg:editEvent._newPerAtt
+  };
+  if(csvUrl) payload.luma_csv_url=csvUrl;
+  try{
+    var res=await fetch('/api/events?id='+encodeURIComponent(editEvent.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    var data=await res.json();
+    if(!res.ok){warn.style.display='';warn.textContent=data.error||'Save failed.';btn.textContent='Save changes';btn.disabled=false;return;}
+    closeEdit();loadData();
+  }catch(e){warn.style.display='';warn.textContent='Network error: '+e.message;btn.textContent='Save changes';btn.disabled=false;}
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function exportCSV(){
   if(!window._data) return;

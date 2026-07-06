@@ -17,6 +17,9 @@ module.exports = async function handler(req, res) {
   if (req.method === "DELETE") {
     return deleteEvent(req, res, pool);
   }
+  if (req.method === "PATCH") {
+    return updateEvent(req, res, pool);
+  }
 
   return res.status(405).json({ error: "Method not allowed" });
 };
@@ -65,6 +68,7 @@ async function createEvent(req, res, pool) {
     return res.status(400).json({ error: "total_co2e_kg and per_attendee_co2e_kg are required" });
   }
 
+  try {
   const { rows } = await pool.query(
     `INSERT INTO events (
       event_name, event_date, city, organizer, total_attendees, venue_name, event_type,
@@ -82,7 +86,7 @@ async function createEvent(req, res, pool) {
       rating, what_worked_well, what_to_improve,
       submitter_name, submitter_email,
       sustainability_initiatives, sdgs, event_partners,
-      swag_description, products_sold, luma_event_id
+      swag_description, products_sold, luma_event_id, luma_csv_url
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,
       $8,$9,$10,$11,$12,$13,
@@ -93,7 +97,7 @@ async function createEvent(req, res, pool) {
       $33,$34,$35,
       $36,$37,$38,$39,$40,$41,$42,
       $43,$44,$45,
-      $46,$47,$48,$49,$50,$51,$52,$53
+      $46,$47,$48,$49,$50,$51,$52,$53,$54
     ) RETURNING *`,
     [
       d.event_name, d.event_date || null, d.city || null, d.organizer || null,
@@ -117,10 +121,47 @@ async function createEvent(req, res, pool) {
       d.sustainability_initiatives || null, d.sdgs || null,
       d.event_partners || null,
       d.swag_description || null, d.products_sold || null, d.luma_event_id || null,
+      d.luma_csv_url || null,
     ]
   );
 
   return res.status(201).json({ event: rows[0] });
+  } catch (err) {
+    console.error('createEvent DB error:', err.message);
+    return res.status(500).json({ error: 'Database error', detail: err.message });
+  }
+}
+
+async function updateEvent(req, res, pool) {
+  const { id } = req.query;
+  if (!id) return res.status(400).json({ error: "id is required" });
+
+  const d = req.body;
+  if (!d) return res.status(400).json({ error: "body required" });
+
+  const { rows } = await pool.query(
+    `UPDATE events SET
+      travel_local_pct = $1, travel_bus_pct = $2, travel_train_pct = $3,
+      travel_car_long_pct = $4, travel_flight_pct = $5,
+      travel_walk_bike_pct = $6, travel_transit_pct = $7, travel_car_local_pct = $8,
+      long_distance_km = $9, local_distance_km = $10, avg_long_dist_km = $11,
+      travel_co2_kg = $12, total_co2e_kg = $13, per_attendee_co2e_kg = $14,
+      luma_csv_url = COALESCE($15, luma_csv_url)
+    WHERE id = $16
+    RETURNING *`,
+    [
+      d.travel_local_pct ?? null, d.travel_bus_pct ?? null, d.travel_train_pct ?? null,
+      d.travel_car_long_pct ?? null, d.travel_flight_pct ?? null,
+      d.travel_walk_bike_pct ?? null, d.travel_transit_pct ?? null, d.travel_car_local_pct ?? null,
+      d.long_distance_km ?? null, d.local_distance_km ?? null, d.avg_long_dist_km ?? null,
+      d.travel_co2_kg ?? null, parseFloat(d.total_co2e_kg), parseFloat(d.per_attendee_co2e_kg),
+      d.luma_csv_url || null,
+      id
+    ]
+  );
+
+  if (rows.length === 0) return res.status(404).json({ error: "Event not found" });
+  return res.status(200).json({ event: rows[0] });
 }
 
 async function deleteEvent(req, res, pool) {

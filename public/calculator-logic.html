@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How We Calculate Emissions — PNW Climate Week</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a18; padding: 2rem 1rem 5rem; font-size: 15px; }
+    .wrap { max-width: 860px; margin: 0 auto; }
+
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .subtitle { font-size: 14px; color: #6b6b67; margin-bottom: 2.5rem; }
+    h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #9e9e99; margin-bottom: 1rem; }
+
+    .flow { display: flex; flex-direction: column; align-items: center; }
+    .node { border-radius: 12px; padding: 14px 22px; font-size: 14px; font-weight: 500; text-align: center; max-width: 320px; width: 100%; }
+    .node-start  { background: #1D9E75; color: #fff; font-weight: 700; font-size: 15px; border-radius: 40px; }
+    .node-q      { background: #fff; border: 2px solid #1D9E75; color: #1a1a18; border-radius: 12px; }
+    .node-action { background: #fff; border: 1px solid #e0e0e0; color: #1a1a18; border-radius: 10px; }
+    .node-result { background: #EAF3DE; border: 1px solid #b5d98c; color: #3B6D11; border-radius: 10px; }
+    .node-warn   { background: #FFF8F0; border: 1px solid #f5c97a; color: #854F0B; border-radius: 10px; }
+    .node-grey   { background: #f5f5f3; border: 1px solid #e0e0e0; color: #6b6b67; border-radius: 10px; }
+
+    .arrow { width: 2px; height: 24px; background: #c8c8c4; margin: 0 auto; }
+
+    .branch { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 700px; }
+    .branch-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .branch-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 4px 14px; border-radius: 20px; margin-bottom: 10px; }
+    .label-yes { background: #EAF3DE; color: #3B6D11; }
+    .label-no  { background: #f5f5f3; color: #9e9e99; border: 1px solid #e0e0e0; }
+
+    .ef-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 1rem; }
+    .ef-table { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden; }
+    .ef-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .ef-table thead th { background: #f5f5f3; padding: 8px 12px; font-size: 11px; font-weight: 700; color: #9e9e99; text-transform: uppercase; letter-spacing: .04em; text-align: left; border-bottom: 1px solid #e8e8e6; }
+    .ef-table tbody td { padding: 8px 12px; border-bottom: 1px solid #f5f5f3; }
+    .ef-table tbody tr:last-child td { border-bottom: none; }
+    .ef-num { font-weight: 600; color: #1D9E75; font-family: monospace; }
+
+    .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+    .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; }
+    .pill-green  { background: #EAF3DE; color: #3B6D11; }
+    .pill-orange { background: #FFF4E5; color: #854F0B; }
+
+    .step { display: flex; gap: 14px; margin-bottom: 1.1rem; }
+    .step:last-child { margin-bottom: 0; }
+    .step-num { flex-shrink: 0; width: 26px; height: 26px; background: #1D9E75; color: #fff; border-radius: 50%; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .step-body { font-size: 14px; line-height: 1.55; padding-top: 3px; }
+    .step-body .note { font-size: 12px; color: #9e9e99; margin-top: 4px; }
+
+    .formula-box { background: #f5f5f3; border-radius: 8px; padding: .75rem 1rem; font-family: monospace; font-size: 13px; margin-top: .6rem; color: #1a1a18; line-height: 1.7; }
+    .callout { background: #FFFBEB; border: 1px solid #f5c97a; border-radius: 8px; padding: .85rem 1rem; margin-top: 1rem; font-size: 13px; color: #6b440a; line-height: 1.6; }
+    .callout strong { color: #4a2d06; }
+
+    .total-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-top: .75rem; align-items: center; }
+    .total-chunk { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 500; }
+    .total-plus { color: #9e9e99; font-size: 18px; font-weight: 300; }
+    .total-eq   { color: #1D9E75; font-size: 18px; font-weight: 700; }
+
+    .example-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem; }
+    .chip { border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 500; }
+    .chip-green  { background: #EAF3DE; color: #3B6D11; border: 1px solid #b5d98c; }
+    .chip-orange { background: #FFF4E5; color: #854F0B; border: 1px solid #f5c97a; }
+
+    @media(max-width:580px){ .ef-grid{grid-template-columns:1fr;} .branch{grid-template-columns:1fr;} }
+
+    .page-nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 2rem; }
+    .page-nav a { font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 20px; text-decoration: none; background: #fff; border: 1px solid #e0e0e0; color: #3a3a38; transition: background .15s; }
+    .page-nav a:hover { background: #EAF3DE; border-color: #b5d98c; color: #3B6D11; }
+    .section-title { font-size: 18px; font-weight: 700; margin: 2.5rem 0 1rem; display: flex; align-items: center; gap: 8px; }
+    .rating-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f5f5f3; font-size: 14px; }
+    .rating-row:last-child { border-bottom: none; }
+    .rating-badge { min-width: 110px; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-align: center; }
+    .catering-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: .75rem; }
+    .catering-tile { background: #f5f5f3; border-radius: 10px; padding: 12px; text-align: center; }
+    .catering-tile .ct-label { font-size: 12px; color: #6b6b67; margin-bottom: 4px; }
+    .catering-tile .ct-val { font-size: 20px; font-weight: 700; color: #1D9E75; font-family: monospace; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>How We Calculate Emissions</h1>
+  <p class="subtitle">A plain-English guide for the PNW Climate Week team — what the calculator is actually doing, category by category.</p>
+
+  <nav class="page-nav">
+    <a href="#travel-heading">✈️ Travel</a>
+    <a href="#energy">⚡ Energy</a>
+    <a href="#catering">🥗 Catering</a>
+    <a href="#waste">🗑️ Waste</a>
+    <a href="#materials">📦 Materials</a>
+    <a href="#rating">🌟 Rating</a>
+    <a href="#dashboard">📊 Dashboard</a>
+  </nav>
+
+  <!-- BIG PICTURE -->
+  <div class="card" style="margin-bottom:2rem;">
+    <h2>The big picture</h2>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;">The calculator produces a single total CO2e number per event, broken into five categories. Each category is calculated independently and then summed.</p>
+    <div class="total-bar" style="margin-top:1rem;">
+      <div class="total-chunk">✈️ Travel</div>
+      <div class="total-plus">+</div>
+      <div class="total-chunk">⚡ Energy</div>
+      <div class="total-plus">+</div>
+      <div class="total-chunk">🥗 Catering</div>
+      <div class="total-plus">+</div>
+      <div class="total-chunk">🗑️ Waste</div>
+      <div class="total-plus">+</div>
+      <div class="total-chunk">📦 Materials</div>
+      <div class="total-eq">=</div>
+      <div class="total-chunk" style="background:#EAF3DE;border-color:#b5d98c;color:#3B6D11;font-weight:700;">Total CO2e</div>
+    </div>
+    <p style="font-size:13px;color:#9e9e99;margin-top:.75rem;">All values are in kg CO2e. The per-person figure divides the total by actual attendee headcount and determines the event rating.</p>
+  </div>
+
+  <div class="section-title" id="travel-heading">✈️ Travel</div>
+
+  <!-- FLOWCHART -->
+  <div class="card" style="margin-bottom:2rem;">
+    <h2>Flow map — step by step</h2>
+
+    <div class="flow" style="margin-top:.5rem;">
+
+      <div class="node node-start">Organizer submits an event</div>
+      <div class="arrow"></div>
+      <div class="node node-q">Was a guest CSV from Luma uploaded?</div>
+
+      <div style="display:flex;width:100%;max-width:700px;">
+        <div style="flex:1;border-top:2px solid #c8c8c4;border-right:2px solid #c8c8c4;height:20px;border-radius:0 8px 0 0;"></div>
+        <div style="flex:1;border-top:2px solid #c8c8c4;border-left:2px solid #c8c8c4;height:20px;border-radius:8px 0 0 0;"></div>
+      </div>
+
+      <div class="branch">
+
+        <!-- YES branch -->
+        <div class="branch-col">
+          <div class="branch-label label-yes">Yes — CSV uploaded</div>
+          <div class="arrow"></div>
+
+          <div class="node node-action" style="font-size:13px;">
+            <strong>Identify the venue location</strong><br>
+            <span style="color:#6b6b67;font-size:12px;margin-top:4px;display:block;">We use the venue zip code entered in the form. If it wasn't entered or lookup fails, we fall back to the city centre coordinates (e.g. downtown Vancouver for a Vancouver BC event).</span>
+          </div>
+          <div class="arrow"></div>
+
+          <div class="node node-action" style="font-size:13px;">
+            <strong>Look up each attendee's zip</strong><br>
+            <span style="color:#6b6b67;font-size:12px;margin-top:4px;display:block;">Canadian FSA (first 3 chars, e.g. "V6B") or US 5-digit zip only. Anything else — 4-digit, foreign, blank — gets skipped. Those attendees still contribute to mode % counts, but their distance is unknown so we use fallback distances instead.</span>
+          </div>
+          <div class="arrow"></div>
+
+          <div class="node node-action" style="font-size:13px;">
+            <strong>Calculate distance to venue</strong><br>
+            <span style="color:#6b6b67;font-size:12px;margin-top:4px;display:block;">Straight-line (haversine) distance from each attendee's home zip to the venue. If zip lookup failed, we fall back to 300 km for long-distance and 8 km for local commute.</span>
+          </div>
+          <div class="arrow"></div>
+
+          <div class="node node-q" style="font-size:13px;">Is the attendee within <strong>30 km</strong> of the venue?</div>
+
+          <div style="display:flex;width:100%;margin:0;">
+            <div style="flex:1;border-top:2px solid #c8c8c4;border-right:2px solid #c8c8c4;height:16px;border-radius:0 6px 0 0;"></div>
+            <div style="flex:1;border-top:2px solid #c8c8c4;border-left:2px solid #c8c8c4;height:16px;border-radius:6px 0 0 0;"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+              <span class="pill pill-green">Yes — local</span>
+              <div class="node node-result" style="font-size:12px;max-width:none;width:100%;padding:10px 12px;text-align:left;">
+                Their long-distance travel answer is overridden to zero — they didn't travel to get here. Their day-of commute uses their <strong>actual distance</strong> to the venue.
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+              <span class="pill pill-orange">No — travelled in</span>
+              <div class="node node-warn" style="font-size:12px;max-width:none;width:100%;padding:10px 12px;text-align:left;">
+                Long-distance CO2 uses their <strong>actual distance</strong> and their stated mode (bus/train/car/flight). Day-of commute assumes <strong>8 km</strong> — we don't know where they're staying.
+              </div>
+            </div>
+          </div>
+          <div class="arrow"></div>
+
+          <div class="node node-action" style="font-size:13px;">
+            <strong>Sum each person's CO2, then scale up</strong><br>
+            <span style="color:#6b6b67;font-size:12px;margin-top:4px;display:block;">Add every individual's CO2 (using actual distances where available, fallbacks where not). Divide by total respondents to get an average. Multiply by total attendee headcount.</span>
+          </div>
+          <div class="arrow"></div>
+
+          <div class="node node-result" style="font-size:13px;">
+            <strong>Per-person travel CO2 (precise)</strong><br>
+            <span style="font-size:12px;font-weight:400;">Based on real zip codes, real distances, and each person's stated mode.</span>
+          </div>
+        </div>
+
+        <!-- NO branch -->
+        <div class="branch-col">
+          <div class="branch-label label-no">No — manual entry only</div>
+          <div class="arrow"></div>
+
+          <div class="node node-action" style="font-size:13px;">
+            <strong>Organizer enters mode splits manually</strong><br>
+            <span style="color:#6b6b67;font-size:12px;margin-top:4px;display:block;">Two questions: how people got <em>to the region</em> (long-distance) and how they got <em>to/from the event on the day</em> (local). Each group must total 100%.</span>
+          </div>
+          <div class="arrow"></div>
+
+          <div class="node node-warn" style="font-size:13px;">
+            <strong>Fixed assumed distances</strong><br>
+            <span style="font-size:12px;font-weight:400;margin-top:4px;display:block;">Bus / train / car: <strong>300 km</strong>. Flights: <strong>500 km</strong>. Local commute: <strong>8 km</strong>. These are rough averages — no actual zip data.</span>
+          </div>
+          <div class="arrow"></div>
+
+          <div class="node node-action" style="font-size:13px;">
+            <strong>Formula: attendees × mode % × distance × 2 × emission factor</strong><br>
+            <span style="color:#6b6b67;font-size:12px;margin-top:4px;display:block;">Applied separately to each mode. Round trip (×2) always assumed.</span>
+          </div>
+          <div class="arrow"></div>
+
+          <div class="node node-grey" style="font-size:13px;">
+            <strong>Estimated travel CO2</strong><br>
+            <span style="font-size:12px;font-weight:400;">Less precise — distances are guesses. Works reasonably for local events. Underestimates for events with people flying in from further away.</span>
+          </div>
+        </div>
+
+      </div><!-- /branch -->
+    </div><!-- /flow -->
+  </div>
+
+  <!-- EMISSION FACTORS -->
+  <div class="card" style="margin-bottom:2rem;">
+    <h2>Emission factors</h2>
+    <p style="font-size:13px;color:#6b6b67;margin-bottom:1rem;">Kilograms of CO2 emitted per kilometre per person. All trips are counted as round trips (×2).</p>
+
+    <div class="ef-grid">
+      <div class="ef-table">
+        <table>
+          <thead><tr><th>Long-distance mode</th><th>kg CO2/km/person</th></tr></thead>
+          <tbody>
+            <tr><td>Already local (&lt; 30 km)</td><td class="ef-num">0</td></tr>
+            <tr><td>Bus / Coach</td><td class="ef-num">0.044</td></tr>
+            <tr><td>Train — BC events</td><td class="ef-num">0.008</td></tr>
+            <tr><td>Train — Canada national</td><td class="ef-num">0.200</td></tr>
+            <tr><td>Train — US / other</td><td class="ef-num">0.071</td></tr>
+            <tr><td>Car / Rideshare / Drive</td><td class="ef-num">0.191</td></tr>
+            <tr><td>Flight</td><td class="ef-num">0.255</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ef-table">
+        <table>
+          <thead><tr><th>Local commute mode</th><th>kg CO2/km/person</th></tr></thead>
+          <tbody>
+            <tr><td>Walk / Bike / Scooter</td><td class="ef-num">0</td></tr>
+            <tr><td>Transit — BC (TransLink)</td><td class="ef-num">0.008</td></tr>
+            <tr><td>Transit — US / other Canada</td><td class="ef-num">0.062</td></tr>
+            <tr><td>Car / Rideshare / Taxi</td><td class="ef-num">0.191</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="background:#f5f5f3;border-radius:8px;padding:.9rem 1rem;margin-top:1rem;font-size:13px;color:#6b6b67;line-height:1.6;">
+      <strong style="color:#1a1a18;">Why is BC transit so low (0.008)?</strong> TransLink runs largely on electricity from BC Hydro, which is predominantly hydroelectric. US transit systems mostly use diesel or mixed-grid electricity, hence the higher factor.
+    </div>
+
+    <div class="callout" style="margin-top:.75rem;">
+      <strong>Note on BC long-distance train (0.008):</strong> This is a deliberate methodological choice — we apply BC's electric rail factor to train travel to BC events. In reality, not all BC rail is electric (VIA Rail and Rocky Mountaineer use diesel). If an attendee took VIA Rail from elsewhere in Canada, their actual emissions are closer to 0.200 kg/km. We acknowledge this underestimates some rail journeys, but have chosen this factor to align with BC's cleaner electric transit infrastructure where possible.
+    </div>
+
+    <div style="background:#f5f5f3;border-radius:8px;padding:.9rem 1rem;margin-top:.75rem;font-size:13px;color:#6b6b67;line-height:1.6;">
+      <strong style="color:#1a1a18;">How does the calculator know which train factor to use?</strong> It looks at the event city. Vancouver BC, Victoria BC, Kelowna BC → 0.008. Events outside BC in Canada → 0.200. US events → 0.071.
+    </div>
+  </div>
+
+  <!-- 30KM RULE -->
+  <div class="card" style="margin-bottom:2rem;">
+    <h2>The 30 km rule</h2>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;">We used to classify anyone from BC, Washington, or Oregon as "already local." That was wrong — someone from Kelowna is 390 km from Vancouver, not local by any reasonable definition.</p>
+    <br>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;">Now we use actual distance: under 30 km from the venue = local, no long-distance emissions counted. Over 30 km = they made a real trip.</p>
+    <div class="example-chips">
+      <div class="chip chip-green">V6B (Gastown) → ~1 km → local ✓</div>
+      <div class="chip chip-green">V6R (Kitsilano) → ~5 km → local ✓</div>
+      <div class="chip chip-orange">V3A (Langley) → ~39 km → long-distance</div>
+      <div class="chip chip-orange">V1Y (Kelowna) → ~390 km → long-distance</div>
+      <div class="chip chip-orange">98101 (Seattle) → ~230 km → long-distance</div>
+    </div>
+  </div>
+
+  <!-- ZIP RULES -->
+  <div class="card" style="margin-bottom:2rem;">
+    <h2>Zip code lookup rules</h2>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Canadian postal codes</strong> — must start with a letter (e.g. <code>V6B 2W9</code>). We use the first 3 characters (the FSA: <code>V6B</code>) to look up coordinates. Spaces are stripped automatically.
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>US zip codes</strong> — must be exactly 5 digits (e.g. <code>98101</code>). We do not pad shorter numbers. A 4-digit entry like <code>5778</code> is ignored — it could be Australian, South African, or a typo, and guessing would put someone in the wrong place.
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Unrecognised or missing zip</strong> — that attendee's travel answers still count toward mode percentage breakdowns, but we can't calculate their actual distance. Instead, we use the fallback: 300 km for long-distance travel and 8 km for local commute. They are <em>not</em> excluded from the CO2 total.
+        <div class="note">This means attendees who left the zip blank still contribute to the average — just with less precision than those who provided one.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCALING -->
+  <div class="card">
+    <h2>How we scale from respondents to all attendees</h2>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;">Not every attendee answers every question. We count anyone who answered at least one travel question (long-distance or local mode) as a respondent.</p>
+    <div class="formula-box" style="margin-top:.75rem;">
+      avg CO2 per respondent  =  (sum of all respondents' individual CO2)  ÷  respondent count
+      <br>
+      total travel CO2  =  avg CO2 per respondent  ×  headcount
+    </div>
+    <div class="callout" style="margin-top:.75rem;">
+      <strong>Important:</strong> "respondent" means anyone who answered a travel question — zip code or not. Those without a recognisable zip still contribute to the average using fallback distances (300 km / 8 km). Those who left both travel questions blank are skipped entirely.
+    </div>
+
+    <h3 style="margin-top:1.25rem;font-size:14px;font-weight:600;color:#1a1a18;">Where does "headcount" come from?</h3>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;">Headcount is our best estimate of who actually showed up — not just who registered. We determine it in order of reliability:</p>
+    <ol style="font-size:14px;line-height:1.8;color:#3a3a38;padding-left:1.25rem;margin-top:.5rem;">
+      <li><strong>checked_in_at column present in CSV</strong> — we count only rows where <code>checked_in_at</code> has a timestamp. Blank = not checked in = excluded from headcount and from respondent counts. This is the most accurate source.</li>
+      <li><strong>checked_in_at column not present</strong> — all CSV rows are treated as attended (registrant list, no check-in data). The event organiser manually enters the total attendee count, and we use that for scaling.</li>
+    </ol>
+    <div class="callout" style="margin-top:.75rem;">
+      <strong>Why this matters:</strong> Luma exports include everyone who registered, but only checked-in people actually traveled to the event. Using registrant count would overstate emissions. The <code>checked_in_at</code> column is the ground truth.
+    </div>
+    <p style="font-size:13px;color:#9e9e99;margin-top:.75rem;">Example: 150 registered, 120 checked in. The CSV has 90 checked-in rows with travel answers. We calculate CO2 for those 90, find the average, then multiply by 120 (not 150).</p>
+  </div>
+
+
+  <!-- ═══════════════════════════════════ ENERGY ═══════════════════════════════════ -->
+  <div class="section-title" id="energy">⚡ Energy</div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h2>What we're measuring</h2>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;">Electricity used to power the venue — lights, AV, HVAC, etc. We estimate consumption from venue size and event duration, then multiply by the grid emission factor for that location.</p>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h2>The formula</h2>
+    <div class="formula-box">
+      estimated kWh  =  (venue sq ft  ×  2 W/sq ft)  ÷  1000  ×  duration hours
+      <br>
+      energy CO2e  =  estimated kWh  ×  grid emission factor
+    </div>
+    <p style="font-size:13px;color:#6b6b67;margin-top:.75rem;">The 2 W/sq ft assumption is a typical lighting + AV load for a meeting/conference space. It's a rough average — not accounting for HVAC-heavy or server-room spaces.</p>
+    <div class="callout" style="margin-top:.75rem;">
+      <strong>Example:</strong> 2,000 sq ft venue, 4 hours, WA/OR grid.<br>
+      kWh = (2,000 × 2) ÷ 1,000 × 4 = <strong>16 kWh</strong><br>
+      CO2e = 16 × 0.288 = <strong>4.6 kg</strong>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:2.5rem;">
+    <h2>Grid emission factors</h2>
+    <div class="ef-table" style="margin-top:.5rem;">
+      <table>
+        <thead><tr><th>Energy source</th><th>kg CO2e / kWh</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>WA / OR grid (NWPP)</td><td class="ef-num">0.288</td><td style="font-size:12px;color:#9e9e99;">EPA eGRID 2024</td></tr>
+          <tr><td>BC grid (BC Hydro — hydroelectric)</td><td class="ef-num">0.018</td><td style="font-size:12px;color:#9e9e99;">Environment Canada / OBPS 2026</td></tr>
+          <tr><td>Generator (diesel)</td><td class="ef-num">0.740</td><td style="font-size:12px;color:#9e9e99;">Standard diesel generation EF</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:#f5f5f3;border-radius:8px;padding:.9rem 1rem;margin-top:.75rem;font-size:13px;color:#6b6b67;line-height:1.6;">
+      <strong style="color:#1a1a18;">Auto-select:</strong> The calculator checks the event zip code first — a zip starting with "V" (BC) triggers the BC Hydro factor. If no zip is entered, it falls back to city: Vancouver BC → BC factor, everything else → WA/OR. The organiser can override manually.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ CATERING ═══════════════════════════════════ -->
+  <div class="section-title" id="catering">🥗 Catering</div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h2>What we're measuring</h2>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;">Food production emissions — the carbon cost of growing, processing, and transporting the food served. We don't track transport to venue or packaging separately; those are embedded in the per-meal factors.</p>
+    <p style="font-size:13px;color:#9e9e99;margin-top:.5rem;">If no catering was provided, this category is zero. Rescue or surplus food (e.g. Too Good To Go, donated surplus) gets a near-zero factor because the production emissions are attributed to the original supply chain, not the event.</p>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h2>The formula</h2>
+    <div class="formula-box">
+      catering CO2e  =  portions served  ×  emission factor (kg CO2e per portion)
+    </div>
+    <p style="font-size:13px;color:#6b6b67;margin-top:.75rem;"><strong>Portions ≠ headcount.</strong> If an event serves breakfast and lunch to 50 people, that's 100 portions. Enter the total food units served, not the number of people.</p>
+
+    <div class="catering-grid" style="margin-top:1rem;">
+      <div class="catering-tile">
+        <div class="ct-label">Rescue / surplus</div>
+        <div class="ct-val">0.1</div>
+        <div class="ct-label" style="margin-top:4px;">kg CO2e / portion</div>
+      </div>
+      <div class="catering-tile">
+        <div class="ct-label">Vegan</div>
+        <div class="ct-val">0.5</div>
+        <div class="ct-label" style="margin-top:4px;">kg CO2e / portion</div>
+      </div>
+      <div class="catering-tile">
+        <div class="ct-label">Vegetarian</div>
+        <div class="ct-val">1.5</div>
+        <div class="ct-label" style="margin-top:4px;">kg CO2e / portion</div>
+      </div>
+      <div class="catering-tile">
+        <div class="ct-label">Mixed</div>
+        <div class="ct-val">2.5</div>
+        <div class="ct-label" style="margin-top:4px;">kg CO2e / portion</div>
+      </div>
+      <div class="catering-tile" style="background:#FFF4E5;">
+        <div class="ct-label">Meat-heavy</div>
+        <div class="ct-val" style="color:#D85A30;">5.5</div>
+        <div class="ct-label" style="margin-top:4px;">kg CO2e / portion</div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:1rem;">
+      <strong>Example:</strong> 80 vegetarian lunches.<br>
+      CO2e = 80 × 1.5 = <strong>120 kg</strong>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ WASTE ═══════════════════════════════════ -->
+  <div class="section-title" id="waste">🗑️ Waste</div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h2>What we're measuring</h2>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;">Emissions from waste disposal. Landfill waste produces methane as it decomposes — high carbon impact. Recycling avoids some production emissions. Compost is carbon-negative because organic matter is diverted from landfill and returns nutrients to soil.</p>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h2>Two input methods</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Bag counts (default)</strong> — Count the full bags after the event. A standard 30-gallon garbage bag is assumed at 12 kg. Enter counts per stream.
+        <div class="formula-box" style="margin-top:.6rem;">
+          waste CO2e  =  (landfill bags × 12 × 0.639)
+                       + (recycling bags × 12 × 0.099)
+                       + (compost bags × 12 × −0.180)
+        </div>
+        <div class="note">Compost bags are carbon-negative — they reduce your total. Recycling has a small positive value because sorting and processing still uses energy.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>Venue diversion report (override)</strong> — If the venue provides a waste report with total weight and diversion rate, use those instead. More accurate than bag counting.
+        <div class="formula-box" style="margin-top:.6rem;">
+          landfill kg  =  total waste kg  ×  (1 − diversion rate)
+          <br>
+          diverted kg  =  total waste kg  ×  diversion rate
+          <br>
+          waste CO2e  =  (landfill kg × 0.639)  +  (diverted kg × −0.041)
+        </div>
+        <div class="note">Diverted average (−0.041) is the midpoint of recycling (0.099) and compost (−0.180), since the report doesn't break down stream composition.</div>
+      </div>
+    </div>
+
+    <div class="ef-table" style="margin-top:1rem;">
+      <table>
+        <thead><tr><th>Waste stream</th><th>kg CO2e per kg of waste</th></tr></thead>
+        <tbody>
+          <tr><td>Landfill</td><td class="ef-num">+0.639</td></tr>
+          <tr><td>Recycling</td><td class="ef-num">+0.099</td></tr>
+          <tr><td>Compost</td><td class="ef-num">−0.180</td></tr>
+          <tr><td>Diverted (mixed, from report)</td><td class="ef-num">−0.041</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout" style="margin-top:.75rem;">
+      <strong>Example:</strong> 3 landfill bags, 2 compost bags, 1 recycling bag.<br>
+      CO2e = (3×12×0.639) + (2×12×−0.180) + (1×12×0.099)<br>
+      = 23.0 − 4.3 + 1.2 = <strong>19.9 kg</strong>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ MATERIALS ═══════════════════════════════════ -->
+  <div class="section-title" id="materials">📦 Materials</div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h2>What we're measuring</h2>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;">Paper printed for the event — programmes, name badges, handouts, signage. Swag and signage type are collected for organisational records, but are not included in the CO2 number (too variable to estimate fairly).</p>
+  </div>
+
+  <div class="card" style="margin-bottom:2.5rem;">
+    <h2>The formula</h2>
+    <div class="formula-box">
+      materials CO2e  =  pages printed  ×  0.005 kg CO2e per page
+    </div>
+    <p style="font-size:13px;color:#6b6b67;margin-top:.75rem;">0.005 kg/page accounts for paper production and printing energy. It assumes standard office paper (80 g/m², A4/Letter) and average grid electricity for printing.</p>
+    <div class="callout" style="margin-top:.75rem;">
+      <strong>Example:</strong> 200 pages printed.<br>
+      CO2e = 200 × 0.005 = <strong>1.0 kg</strong> — intentionally a small number. Paper matters at scale, not for a 200-page event pack.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ RATING ═══════════════════════════════════ -->
+  <div class="section-title" id="rating">🌟 Rating</div>
+
+  <div class="card">
+    <h2>How the rating is calculated</h2>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;">Once all five categories are summed, total CO2e is divided by total attendee headcount. That per-person figure determines the event's sustainability rating.</p>
+    <div class="formula-box" style="margin-top:.75rem;">
+      per-person CO2e  =  total CO2e  ÷  attendee headcount
+    </div>
+
+    <div style="margin-top:1rem;">
+      <div class="rating-row">
+        <div class="rating-badge" style="background:#E1F5EE;color:#1D9E75;">🌟 Exemplary</div>
+        <div style="font-size:14px;color:#3a3a38;">Under <strong>1 kg</strong> CO2e per person</div>
+        <div style="font-size:12px;color:#9e9e99;margin-left:auto;">Outstanding for a community event</div>
+      </div>
+      <div class="rating-row">
+        <div class="rating-badge" style="background:#EAF3DE;color:#3B6D11;">✅ Good effort</div>
+        <div style="font-size:14px;color:#3a3a38;"><strong>1–3 kg</strong> CO2e per person</div>
+        <div style="font-size:12px;color:#9e9e99;margin-left:auto;">Above average for this type of event</div>
+      </div>
+      <div class="rating-row">
+        <div class="rating-badge" style="background:#FAEEDA;color:#BA7517;">📊 Average</div>
+        <div style="font-size:14px;color:#3a3a38;"><strong>3–6 kg</strong> CO2e per person</div>
+        <div style="font-size:12px;color:#9e9e99;margin-left:auto;">Typical for urban community events</div>
+      </div>
+      <div class="rating-row">
+        <div class="rating-badge" style="background:#FAECE7;color:#D85A30;">⚠️ Below average</div>
+        <div style="font-size:14px;color:#3a3a38;"><strong>6–12 kg</strong> CO2e per person</div>
+        <div style="font-size:12px;color:#9e9e99;margin-left:auto;">Travel or catering choices are adding up</div>
+      </div>
+      <div class="rating-row">
+        <div class="rating-badge" style="background:#FCEBEB;color:#A32D2D;">🔴 Needs improvement</div>
+        <div style="font-size:14px;color:#3a3a38;">Over <strong>12 kg</strong> CO2e per person</div>
+        <div style="font-size:12px;color:#9e9e99;margin-left:auto;">Worth reviewing travel and catering decisions</div>
+      </div>
+    </div>
+
+    <div style="background:#f5f5f3;border-radius:8px;padding:.9rem 1rem;margin-top:1rem;font-size:13px;color:#6b6b67;line-height:1.6;">
+      <strong style="color:#1a1a18;">Who sees the rating?</strong> Only the internal team, on the dashboard. Organisers see their CO2 numbers but not the rating label. See the Travel section for how headcount is determined.
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════ DASHBOARD ═══════════════════════════════════ -->
+  <div class="section-title" id="dashboard">📊 The Dashboard</div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h2>What's in the dashboard</h2>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;margin-bottom:1rem;">Password-protected at <code>/dashboard.html</code> — team access only. Organisers see their own CO2 breakdown after submitting but never see the rating label or other events' data.</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body"><strong>Summary stats</strong> — total events, total attendees, total CO2e, and average CO2e per person across all events.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body"><strong>Average CO2e by category</strong> — bar chart breaking down where emissions come from (travel, energy, catering, waste, materials).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body"><strong>By city</strong> — events, attendees, avg/person, and total CO2e grouped by city.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body"><strong>Ratings distribution</strong> — how many events fall in each rating tier.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body"><strong>Travel distance by event</strong> — for Luma CSV events: avg long-distance and local trip distances, attendee region breakdown (BC / PNW / national / Canada), and a "Pull from Luma" button to refresh live.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body"><strong>All events table</strong> — full list with date, city, attendees, per-person CO2e, total CO2e, rating badge, and submitter name. Edit button on every row.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body"><strong>Needs attention</strong> — auto-flags events rated "Below average" or "Needs improvement," with the organiser's own notes on what they'd improve.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:2.5rem;">
+    <h2>Editing an event after submission</h2>
+    <p style="font-size:14px;line-height:1.6;color:#3a3a38;">The team can edit any event's travel data from the dashboard. This is useful when an organiser submitted rough estimates and better data (like a Luma CSV) becomes available later.</p>
+    <div style="margin-top:.75rem;">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">Click <strong>Edit</strong> on any event row. A modal opens with the current travel mode splits and distances pre-filled.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">Optionally upload a Luma CSV — this auto-fills all travel percentages, calculates per-attendee CO2 using actual zip distances, and auto-fills the checked-in headcount if the <code>checked_in_at</code> column is present.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">CO2e totals and the rating update live as you adjust values. Save writes back to the database and the dashboard reflects the change immediately.</div>
+      </div>
+    </div>
+    <div style="background:#f5f5f3;border-radius:8px;padding:.9rem 1rem;margin-top:.75rem;font-size:13px;color:#6b6b67;line-height:1.6;">
+      <strong style="color:#1a1a18;">Export CSV</strong> — the dashboard has a one-click export of all event data as a spreadsheet, including every CO2 category, rating, submitter details, and improvement notes. Useful for reporting to funders or Climate Week partners.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

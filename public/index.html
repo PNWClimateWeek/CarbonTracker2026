@@ -198,7 +198,7 @@
   <header>
     <h1>PNW Climate Week — CO2 Emissions Calculator</h1>
     <p>To measure the sustainability impacts of PNW Climate Week, we kindly ask all Event Organizers to provide metrics on Travel, Energy, Catering, Waste, and Materials using the following form.</p>
-    <p class="byline">PNW Climate Week · Tacoma · Bend · Seattle · Portland · Vancouver BC · Bellingham</p>
+    <p class="byline">PNW Climate Week · Tacoma · Bend · Seattle · Portland · Vancouver BC · Vancouver WA · Bellingham</p>
     <p style="margin-top:.75rem;font-size:13px;color:var(--text-secondary);">Questions or feedback? Reach us at <a href="mailto:hello@pnwclimateweek.org" style="color:var(--accent);font-weight:500;">hello@pnwclimateweek.org</a></p>
   </header>
 
@@ -251,7 +251,7 @@
       <div class="f"><label class="fl">Event name *</label><input type="text" id="ev-name" placeholder="e.g. Opening Ceremony"></div>
       <div class="f"><label class="fl">Date *</label><input type="date" id="ev-date"></div>
       <div class="f"><label class="fl">City *</label>
-        <select id="ev-city" onchange="autoSetEnergy()"><option>Tacoma</option><option>Bend</option><option>Seattle</option><option>Portland</option><option>Vancouver BC</option><option>Bellingham</option></select>
+        <select id="ev-city" onchange="autoSetEnergy()"><option>Tacoma</option><option>Bend</option><option>Seattle</option><option>Portland</option><option>Vancouver BC</option><option>Vancouver WA</option><option>Bellingham</option></select>
       </div>
       <div class="f"><label class="fl">Host / organizer *</label><input type="text" id="ev-host" placeholder="Name or org"></div>
       <div class="f"><label class="fl">Event zip / postal code *</label><input type="text" id="ev-zip" placeholder="e.g. 98101 or V6B 1A1" oninput="updateRatingPreview()"></div>
@@ -271,6 +271,19 @@
 
   <div class="card t-travel">
     <div class="card-label">🚲 Travel *</div>
+
+    <div style="margin-bottom:1rem;padding:.875rem 1rem;border:0.5px dashed var(--travel-bd);border-radius:var(--radius-md);background:rgba(255,255,255,.25);">
+      <div style="font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:.4rem;">Upload Luma guest CSV <span style="font-weight:400;color:var(--text-tertiary);">(optional)</span></div>
+      <div class="note" style="margin-bottom:.625rem;">Export your guest list from the Luma event dashboard (Guests → Export CSV). If your registration included the zip code and travel mode questions, this will auto-fill the percentages below from actual attendee answers.</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <label style="display:inline-flex;align-items:center;gap:7px;background:var(--bg);border:0.5px solid var(--border-mid);border-radius:var(--radius-md);padding:7px 14px;font-size:13px;color:var(--text-secondary);cursor:pointer;">
+          📂 Choose CSV file
+          <input type="file" id="luma-csv-input" accept=".csv" style="display:none;" onchange="parseLumaCSV(this)">
+        </label>
+        <span id="csv-filename" style="font-size:12px;color:var(--text-tertiary);"></span>
+      </div>
+      <div id="csv-status" style="font-size:12px;margin-top:.5rem;display:none;line-height:1.6;"></div>
+    </div>
 
     <div class="note" style="margin-bottom:.75rem;">Two separate breakdowns: how attendees got to Climate Week (long-distance), and how they got to/from your specific event (local). Each group must add to 100%. Emission factors automatically adjust based on your event's postal code — BC postal codes use TransLink and VIA Rail figures, US zip codes use EPA averages.<br><br>How did attendees get to Climate Week? <span style="color:var(--text-tertiary);">Should total 100%</span></div>
     <div class="fg fg5">
@@ -459,7 +472,7 @@
     </table>
   </div>
 
-  <footer>PNW Climate Week · CO2 calculator for community event organizers in Tacoma, Bend, Seattle, Portland, Vancouver BC, and Bellingham. · Questions or feedback? <a href="mailto:hello@pnwclimateweek.org" style="color:var(--text-tertiary);">hello@pnwclimateweek.org</a> · <a href="/dashboard.html" style="color:var(--text-tertiary);text-decoration:none;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-tertiary)'">Team dashboard</a></footer>
+  <footer>PNW Climate Week · CO2 calculator for community event organizers in Tacoma, Bend, Seattle, Portland, Vancouver BC, Vancouver WA, and Bellingham. · Questions or feedback? <a href="mailto:hello@pnwclimateweek.org" style="color:var(--text-tertiary);">hello@pnwclimateweek.org</a> · <a href="/dashboard.html" style="color:var(--text-tertiary);text-decoration:none;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-tertiary)'">Team dashboard</a></footer>
 
 </div>
 <script>
@@ -570,19 +583,22 @@ function calcWaste(){
 
 function calcCO2(){
   var att=v('ev-att')||1;
-  var localDist=8;
-  var longDist=300;
-  var flightDist=500;
-  // Long-distance CO2 (Q1) — bus 0.044, train region-adjusted, car 0.191, flight 0.255 kg/km
-  var tCO2=0;
-  var tf=getTransitFactors();
-  tCO2+=att*(v('t-bus')/100)*longDist*2*0.044;
-  tCO2+=att*(v('t-train')/100)*longDist*2*tf.train;
-  tCO2+=att*(v('t-car-long')/100)*longDist*2*0.191;
-  tCO2+=att*(v('t-flight')/100)*flightDist*2*0.255;
-  // Local CO2 (Q2) — walk/bike 0, transit region-adjusted, car 0.191 kg/km
-  tCO2+=att*(v('t-transit')/100)*localDist*2*tf.transit;
-  tCO2+=att*(v('t-car-local')/100)*localDist*2*0.191;
+  var tCO2;
+  if(csvTravelPerPerson!==null){
+    tCO2=csvTravelPerPerson*(csvCheckedInCount||att);
+  } else {
+    var localDist=8;
+    var longDist=csvLongDistKm||300;
+    var flightDist=csvLongDistKm||500;
+    var tf=getTransitFactors();
+    tCO2=0;
+    tCO2+=att*(v('t-bus')/100)*longDist*2*0.044;
+    tCO2+=att*(v('t-train')/100)*longDist*2*tf.train;
+    tCO2+=att*(v('t-car-long')/100)*longDist*2*0.191;
+    tCO2+=att*(v('t-flight')/100)*flightDist*2*0.255;
+    tCO2+=att*(v('t-transit')/100)*localDist*2*tf.transit;
+    tCO2+=att*(v('t-car-local')/100)*localDist*2*0.191;
+  }
   var eCO2=(v('en-sqft')*2/1000)*v('en-hrs')*parseFloat(sv('en-src'));
   var catEF={rescue:0.1,vegan:0.5,vegetarian:1.5,mixed:2.5,meatheavy:5.5};
   var cCO2=sv('cat-yn')==='yes'?v('cat-meals')*(catEF[sv('cat-type')]||0):0;
@@ -609,7 +625,7 @@ function getRegion(){
 
 function getTransitFactors(){
   var r=getRegion();
-  if(r==='bc')     return{train:0.20,  transit:0.008};
+  if(r==='bc')     return{train:0.008, transit:0.008};
   if(r==='canada') return{train:0.20,  transit:0.062};
   return            {train:0.071, transit:0.062};
 }
@@ -699,6 +715,20 @@ function addEvent(){
 async function saveEventToBackend(evt){
   var btn=document.getElementById('add-btn');
   btn.disabled=true;btn.textContent='Saving…';
+
+  // Upload CSV to Blob if one was provided
+  var csvUrl=null;
+  if(pendingCsvContent){
+    try{
+      var lumaId=document.getElementById('luma-event-id').value||null;
+      var upRes=await fetch(API_BASE+'/api/upload-csv',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({filename:pendingCsvFilename,content:pendingCsvContent,event_id:lumaId})
+      });
+      if(upRes.ok){var upData=await upRes.json();csvUrl=upData.url||null;}
+    }catch(e){console.warn('CSV upload failed:',e);}
+  }
+
   try{
     var res=await fetch(API_BASE+'/api/events',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -709,16 +739,17 @@ async function saveEventToBackend(evt){
         submitter_name:evt.submitterName||null,submitter_email:evt.submitterEmail||null,
         travel_local_pct:v('t-local'),travel_bus_pct:v('t-bus'),
         travel_train_pct:v('t-train'),travel_car_long_pct:v('t-car-long'),
-        travel_flight_pct:v('t-flight'),long_distance_km:300,
+        travel_flight_pct:v('t-flight'),long_distance_km:csvLongDistKm||300,
         travel_walk_bike_pct:v('t-walk'),travel_transit_pct:v('t-transit'),
-        travel_car_local_pct:v('t-car-local'),local_distance_km:8,
+        travel_car_local_pct:v('t-car-local'),local_distance_km:null,
         flight_distance_km:500,
         luma_event_id:document.getElementById('luma-event-id').value||null,
+        luma_csv_url:csvUrl,
         duration_hours:v('en-hrs'),venue_size_sqft:v('en-sqft'),energy_source:sv('en-src'),
         catering_provided:sv('cat-yn')==='yes',food_type:sv('cat-type'),
         portions:v('cat-meals'),sourcing:null,packaging:null,
         landfill_bags:v('w-land'),recycling_bags:v('w-rec'),compost_bags:v('w-comp'),
-        pages_printed:v('mat-pages'),swag_type:sv('mat-swag'),signage_category:sv('mat-sign'),
+        pages_printed:v('mat-pages'),swag_type:null,signage_category:null,
         swag_description:document.getElementById('mat-swag-desc').value||null,
         products_sold:sv('mat-sold-yn')==='yes'?(document.getElementById('mat-sold-desc').value||null):null,
         total_co2e_kg:evt.co2.total,per_attendee_co2e_kg:evt.perAtt,
@@ -733,10 +764,14 @@ async function saveEventToBackend(evt){
       })
     });
     if(res.ok){showToast('Event saved ✓');loadLiveStats();}
-    else{console.warn('Save failed:',await res.text());showToast('Saved locally — server error','err');}
+    else{
+      var errText=await res.text();
+      var errDetail='';
+      try{errDetail=JSON.parse(errText).detail||JSON.parse(errText).error||errText;}catch(x){errDetail=errText;}
+      showToast('Save failed: '+errDetail,'err');
+    }
   }catch(e){
-    console.warn('Backend unreachable:',e);
-    showToast('Saved locally — offline','err');
+    showToast('Save failed — could not reach server: '+e.message,'err');
   }finally{
     btn.disabled=false;btn.textContent='🌿 Log this event';
   }
@@ -810,6 +845,227 @@ async function importFromLuma(){
     statusEl.textContent='Could not reach import service';
   }
 }
+
+// ── CSV travel import ────────────────────────────────────────────────
+var csvLongDistKm = null;
+var csvTravelPerPerson = null;
+var csvCheckedInCount = null;
+var pendingCsvContent = null;
+var pendingCsvFilename = null;
+
+function haversineBrowser(lat1,lon1,lat2,lon2) {
+  var R=6371,dL=(lat2-lat1)*Math.PI/180,dO=(lon2-lon1)*Math.PI/180;
+  var a=Math.sin(dL/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dO/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+async function fetchZipCoords(zip) {
+  if (!zip) return null;
+  var z=zip.trim().toUpperCase().replace(/\s/g,'');
+  if (!z) return null;
+  var url;
+  if (/^[A-Z]/.test(z)) {
+    url='https://api.zippopotam.us/ca/'+encodeURIComponent(z.substring(0,3));
+  } else {
+    var digits=z.replace(/\D/g,'');
+    if (digits.length!==5) return null;
+    url='https://api.zippopotam.us/us/'+digits;
+  }
+  try {
+    var res=await fetch(url);
+    if(!res.ok) return null;
+    var data=await res.json();
+    var place=data.places&&data.places[0];
+    if(!place) return null;
+    var lat=parseFloat(place.latitude),lon=parseFloat(place.longitude);
+    return (isFinite(lat)&&isFinite(lon))?{lat:lat,lon:lon}:null;
+  } catch(e){return null;}
+}
+
+function parseCSVText(text) {
+  var rows=[],lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  for(var i=0;i<lines.length;i++){
+    var row=[],line=lines[i],field='',inQ=false;
+    for(var j=0;j<line.length;j++){
+      var c=line[j];
+      if(c==='"'&&!inQ){inQ=true;}
+      else if(c==='"'&&inQ){if(line[j+1]==='"'){field+='"';j++;}else{inQ=false;}}
+      else if(c===','&&!inQ){row.push(field.trim());field='';}
+      else{field+=c;}
+    }
+    row.push(field.trim());
+    if(row.some(function(f){return f;}))rows.push(row);
+  }
+  return rows;
+}
+
+function matchLongMode(val) {
+  var v=val.toLowerCase().trim();
+  if(!v) return null;
+  if(v.includes('n/a')||v==='local') return 't-local';
+  if(v.includes('flight')||v.includes('fly')||v.includes('plane')||v.includes('air')) return 't-flight';
+  if(v.includes('train')||v.includes('rail')) return 't-train';
+  if(v.includes('bus')||v.includes('coach')) return 't-bus';
+  if(v.includes('car')||v.includes('driv')||v.includes('drove')||v.includes('rideshare')) return 't-car-long';
+  return null;
+}
+
+function matchLocalMode(val) {
+  var v=val.toLowerCase().trim();
+  if(!v) return null;
+  if(v.includes('walk')||v.includes('bike')||v.includes('cycl')||v.includes('scoot')) return 't-walk';
+  if(v.includes('transit')||v.includes('bus')||v.includes('metro')||v.includes('subway')||v.includes('skytrain')||v.includes('train')) return 't-transit';
+  if(v.includes('car')||v.includes('driv')||v.includes('drove')||v.includes('rideshare')||v.includes('uber')||v.includes('lyft')||v.includes('taxi')) return 't-car-local';
+  return null;
+}
+
+function parseLumaCSV(input) {
+  var file=input.files[0];
+  if(!file) return;
+  document.getElementById('csv-filename').textContent=file.name;
+  var reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      pendingCsvContent=e.target.result;
+      pendingCsvFilename=file.name;
+      var rows=parseCSVText(e.target.result);
+      if(rows.length<2){showCSVStatus('CSV appears empty.','err');return;}
+
+      var headers=rows[0];
+      var zipCol       =headers.findIndex(function(h){return h.toLowerCase().includes('residential zip');});
+      var longCol      =headers.findIndex(function(h){return h.toLowerCase().includes('pacific northwest');});
+      var localCol     =headers.findIndex(function(h){return h.toLowerCase().includes('to and from');});
+      var checkedInCol =headers.findIndex(function(h){return h.toLowerCase()==='checked_in_at';});
+
+      if(longCol===-1&&localCol===-1){
+        showCSVStatus('No travel questions found in this CSV. Check that your Luma registration included the long-distance and local mode questions.','err');
+        return;
+      }
+
+      // Collect unique zips (event + attendees)
+      var eventZip=(document.getElementById('ev-zip').value||'').trim();
+      var allZips=new Set();
+      if(eventZip) allZips.add(eventZip);
+      for(var i=1;i<rows.length;i++){
+        var z=zipCol!==-1?(rows[i][zipCol]||'').trim():'';
+        if(z) allZips.add(z);
+      }
+
+      showCSVStatus('Looking up zip coordinates…','info');
+
+      // Fetch all unique zip coords in parallel
+      var zipList=Array.from(allZips);
+      var coordResults=await Promise.all(zipList.map(function(z){return fetchZipCoords(z);}));
+      var coordMap={};
+      zipList.forEach(function(z,i){if(coordResults[i])coordMap[z]=coordResults[i];});
+
+      var evCoords=eventZip?coordMap[eventZip]:null;
+      if(!evCoords){
+        var _cc={'Vancouver BC':{lat:49.282,lon:-123.116},'Victoria BC':{lat:48.428,lon:-123.365},'Kelowna BC':{lat:49.888,lon:-119.496},'Seattle':{lat:47.606,lon:-122.332},'Portland':{lat:45.523,lon:-122.676},'Bellingham':{lat:48.750,lon:-122.476},'Vancouver WA':{lat:45.638,lon:-122.661},'Tacoma':{lat:47.253,lon:-122.444},'Bend':{lat:44.058,lon:-121.315}};
+        evCoords=_cc[sv('ev-city')]||null;
+      }
+
+      // Only filter by checked_in_at if the column actually has timestamps
+      var hasCheckinData=false;
+      if(checkedInCol!==-1){
+        for(var i=1;i<rows.length;i++){
+          if((rows[i][checkedInCol]||'').trim()){hasCheckinData=true;break;}
+        }
+      }
+
+      var longCounts={},localCounts={},longTotal=0,localTotal=0;
+      var longDists=[],overrideCount=0;
+      var csvLongCO2=0,csvLocCO2=0,csvRespCount=0;
+      var csvCheckedInTotal=0;
+      var tf=getTransitFactors();
+
+      for(var i=1;i<rows.length;i++){
+        var row=rows[i];
+
+        if(hasCheckinData){
+          var ci=(row[checkedInCol]||'').trim();
+          if(!ci) continue; // not checked in, skip
+          csvCheckedInTotal++;
+        }
+
+        var longVal =longCol !==-1?(row[longCol] ||''):'';
+        var localVal=localCol!==-1?(row[localCol]||''):'';
+        var zipVal  =zipCol  !==-1?(row[zipCol]  ||'').trim():'';
+
+        if(!longVal&&!localVal) continue;
+        csvRespCount++;
+
+        var distKm=null;
+        if(evCoords&&zipVal&&coordMap[zipVal]){
+          var c=coordMap[zipVal];
+          distKm=haversineBrowser(c.lat,c.lon,evCoords.lat,evCoords.lon);
+        }
+
+        var isLocal=distKm!==null&&distKm<30;
+
+        if(longVal){
+          var answered=matchLongMode(longVal);
+          var lm=isLocal?'t-local':answered;
+          if(isLocal&&answered&&answered!=='t-local') overrideCount++;
+          if(lm){longCounts[lm]=(longCounts[lm]||0)+1;longTotal++;}
+          if(!isLocal&&distKm!==null) longDists.push(distKm);
+          if(lm&&lm!=='t-local'){
+            var ld=distKm!==null?distKm:300;
+            var lef=lm==='t-bus'?0.044:lm==='t-train'?tf.train:lm==='t-car-long'?0.191:lm==='t-flight'?0.255:0;
+            csvLongCO2+=ld*2*lef;
+          }
+        }
+        if(localVal){
+          var lcm=matchLocalMode(localVal);
+          if(lcm){localCounts[lcm]=(localCounts[lcm]||0)+1;localTotal++;}
+          var localD=isLocal?(distKm||8):8;
+          var lef2=lcm==='t-transit'?tf.transit:lcm==='t-car-local'?0.191:0;
+          csvLocCO2+=localD*2*lef2;
+        }
+      }
+
+      var longFields=['t-local','t-bus','t-train','t-car-long','t-flight'];
+      var localFields=['t-walk','t-transit','t-car-local'];
+
+      if(longTotal>0){
+        longFields.forEach(function(id){
+          document.getElementById(id).value=Math.round((longCounts[id]||0)/longTotal*100)||'';
+        });
+      }
+      if(localTotal>0){
+        localFields.forEach(function(id){
+          document.getElementById(id).value=Math.round((localCounts[id]||0)/localTotal*100)||'';
+        });
+      }
+      checkTravel();
+
+      csvLongDistKm=longDists.length>0
+        ?Math.round(longDists.reduce(function(a,b){return a+b;},0)/longDists.length)
+        :null;
+      csvTravelPerPerson=csvRespCount>0?(csvLongCO2+csvLocCO2)/csvRespCount:null;
+      csvCheckedInCount=hasCheckinData?csvCheckedInTotal:null;
+      if(csvCheckedInCount) document.getElementById('ev-att').value=csvCheckedInCount;
+
+      var parts=[];
+      if(csvCheckedInCount) parts.push(csvCheckedInCount+' checked in');
+      if(longTotal>0) parts.push(longTotal+' long-distance responses');
+      if(localTotal>0) parts.push(localTotal+' local responses');
+      if(overrideCount>0) parts.push(overrideCount+' corrected to local (<30 km)');
+      showCSVStatus('✓ '+file.name+' — '+parts.join(' · '),'ok');
+    }catch(err){
+      showCSVStatus('Could not parse CSV: '+err.message,'err');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function showCSVStatus(msg,type){
+  var el=document.getElementById('csv-status');
+  el.style.display='';
+  el.style.color=type==='err'?'var(--red-text,#A32D2D)':type==='info'?'var(--text-tertiary)':'var(--accent)';
+  el.textContent=msg;
+}
+// ─────────────────────────────────────────────────────────────────────
 
 function renderBars(){
   var el=document.getElementById('bar-chart');

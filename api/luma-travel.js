@@ -7,9 +7,10 @@
 //   "What is your primary mode of transport to the Pacific Northwest region for Climate Week?"
 //   "What is your primary mode of transport to and from this event?"
 
-const { distanceKm } = require('../lib/geo');
+const { haversine, getZipCoords } = require('../lib/geo');
 
-const LOCAL_DIST_DEFAULT_KM = 8; // fallback if attendee zip → event distance seems wrong for local
+const LOCAL_THRESHOLD_KM = 30;
+const LOCAL_DIST_DEFAULT_KM = 8;
 
 const LONG_MODE_EF = {
   'n/a (local)': 0,
@@ -36,7 +37,9 @@ function getRegion(zip) {
 }
 
 function getTrainEF(region) {
-  return (region === 'bc' || region === 'canada') ? 0.20 : 0.071;
+  if (region === 'bc') return 0.008;
+  if (region === 'canada') return 0.20;
+  return 0.071;
 }
 
 function getTransitEF(region) {
@@ -126,35 +129,54 @@ module.exports = async function handler(req, res) {
       fetchEventCoords(eventId, process.env.LUMA_API_KEY),
     ]);
 
+    // Deduplicate attendee zips and fetch all coordinates in parallel
+    const uniqueZips = [...new Set(guests.map(g => {
+      const ans = g.registration_answers || [];
+      return getAnswer(ans, 'residential zip code');
+    }).filter(Boolean))];
+
+    const coordEntries = await Promise.all(
+      uniqueZips.map(async zip => [zip, await getZipCoords(zip)])
+    );
+    const zipCoords = Object.fromEntries(coordEntries.filter(([, c]) => c));
+
     let totalLongCO2 = 0;
     let totalLocalCO2 = 0;
     let totalLongDist = 0;
     let totalLocalDist = 0;
     let longDistCount = 0;
     let localDistCount = 0;
+    let overrideCount = 0;
 
-    const modeCounts  = { long: {}, local: {} };
+    const modeCounts   = { long: {}, local: {} };
     const regionCounts = {};
-    const regionDistances = {}; // region → [distances] for avg by region
+    const regionDistances = {};
     let parsed = 0, skipped = 0;
 
     for (const guest of guests) {
-      const answers  = guest.registration_answers || [];
-      const zip      = getAnswer(answers, 'residential zip code');
-      const longMode = (getAnswer(answers, 'mode of transport to the Pacific Northwest') || '').toLowerCase().trim();
+      const answers = guest.registration_answers || [];
+      const zip     = getAnswer(answers, 'residential zip code');
+      let   longMode = (getAnswer(answers, 'mode of transport to the Pacific Northwest') || '').toLowerCase().trim();
       const localMode= (getAnswer(answers, 'mode of transport to and from this event')  || '').toLowerCase().trim();
 
       if (!longMode && !localMode) { skipped++; continue; }
 
-      const region  = getRegion(zip);
-      const longEF  = getLongEF(longMode, region);
-      const localEF = getLocalEF(localMode, region);
+      const region = getRegion(zip);
 
-      // Distance: use haversine from attendee zip → event, fallback to defaults
-      const longDist = (eventCoords && zip)
-        ? (distanceKm(zip, eventCoords.lat, eventCoords.lon) ?? 300)
-        : 300;
-      const localDist = LOCAL_DIST_DEFAULT_KM;
+      const distToVenue = (eventCoords && zip && zipCoords[zip])
+        ? Math.round(haversine(zipCoords[zip].lat, zipCoords[zip].lon, eventCoords.lat, eventCoords.lon))
+        : null;
+      const isLocalAttendee = distToVenue !== null && distToVenue < LOCAL_THRESHOLD_KM;
+
+      if (isLocalAttendee && longMode !== 'n/a (local)') {
+        longMode = 'n/a (local)';
+        overrideCount++;
+      }
+
+      const longDist  = distToVenue ?? 300;
+      const localDist = isLocalAttendee ? distToVenue : LOCAL_DIST_DEFAULT_KM;
+      const longEF    = getLongEF(longMode, region);
+      const localEF   = getLocalEF(localMode, region);
 
       if (longEF !== null) {
         totalLongCO2 += longDist * 2 * longEF;
@@ -171,13 +193,14 @@ module.exports = async function handler(req, res) {
       modeCounts.local[localMode] = (modeCounts.local[localMode] || 0) + 1;
       regionCounts[region]        = (regionCounts[region]        || 0) + 1;
 
-      if (!regionDistances[region]) regionDistances[region] = [];
-      if (longDist) regionDistances[region].push(longDist);
+      if (!isLocalAttendee) {
+        if (!regionDistances[region]) regionDistances[region] = [];
+        regionDistances[region].push(longDist);
+      }
 
       parsed++;
     }
 
-    // Average distance per region
     const avgDistByRegion = {};
     for (const [region, dists] of Object.entries(regionDistances)) {
       avgDistByRegion[region] = Math.round(dists.reduce((a, b) => a + b, 0) / dists.length);
@@ -189,6 +212,7 @@ module.exports = async function handler(req, res) {
       total_guests_fetched:  guests.length,
       guests_parsed:         parsed,
       guests_skipped:        skipped,
+      guests_overridden_to_local: overrideCount,
       avg_long_dist_km:      longDistCount  ? Math.round(totalLongDist  / longDistCount)  : null,
       avg_local_dist_km:     localDistCount ? Math.round(totalLocalDist / localDistCount) : null,
       avg_dist_by_region_km: avgDistByRegion,
