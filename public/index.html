@@ -430,9 +430,25 @@
     </div>
   </div>
 
-  <div style="display:flex;gap:10px;align-items:center;margin-bottom:2rem;">
-    <button class="btn-primary" id="add-btn" onclick="addEvent()">🌿 Log this event</button>
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;">
+    <button class="btn-primary" id="add-btn" onclick="calculateEvent()">🌿 Calculate emissions</button>
+    <button class="btn-primary" id="confirm-btn" style="display:none;" onclick="confirmSubmitEvent()">✅ Confirm &amp; submit event</button>
     <span id="add-warn" class="warn" style="display:none;"></span>
+  </div>
+
+  <div class="card" id="preview-card" style="display:none;margin-bottom:2rem;">
+    <div class="card-label">Review before you submit</div>
+    <div id="preview-rating" style="display:flex;align-items:center;gap:10px;padding:.75rem 1rem;border-radius:var(--radius-md);margin-bottom:1rem;"></div>
+    <div class="metrics" style="margin-bottom:0;">
+      <div class="metric"><div class="metric-label">Total CO2e</div><div class="metric-value" id="pv-total">0</div><div class="metric-unit">kg for this event</div></div>
+      <div class="metric"><div class="metric-label">Per attendee</div><div class="metric-value" id="pv-per-att">0</div><div class="metric-unit">kg CO2e / person</div></div>
+      <div class="metric"><div class="metric-label">Travel</div><div class="metric-value" id="pv-travel">0</div><div class="metric-unit">kg CO2e</div></div>
+      <div class="metric"><div class="metric-label">Energy</div><div class="metric-value" id="pv-energy">0</div><div class="metric-unit">kg CO2e</div></div>
+      <div class="metric"><div class="metric-label">Catering</div><div class="metric-value" id="pv-catering">0</div><div class="metric-unit">kg CO2e</div></div>
+      <div class="metric"><div class="metric-label">Waste</div><div class="metric-value" id="pv-waste">0</div><div class="metric-unit">kg CO2e</div></div>
+      <div class="metric"><div class="metric-label">Materials</div><div class="metric-value" id="pv-materials">0</div><div class="metric-unit">kg CO2e</div></div>
+    </div>
+    <p style="font-size:12px;color:var(--text-tertiary);margin-top:1rem;">Take your time — nothing is submitted yet. Edit any answer above to recalculate, or click "Confirm &amp; submit event" when you're ready.</p>
   </div>
 
   <div class="card">
@@ -680,10 +696,45 @@ function getPartners(){
 document.addEventListener('input',function(e){
   if(['ev-att','en-hrs','en-sqft','cat-meals','w-land','w-rec','w-comp','w-kg','w-div','mat-pages'].indexOf(e.target.id)>-1)
     updateRatingPreview();
+  if(pendingEvent) invalidatePreview();
 });
-document.addEventListener('change',function(){updateRatingPreview();});
+document.addEventListener('change',function(){
+  updateRatingPreview();
+  if(pendingEvent) invalidatePreview();
+});
 
-function addEvent(){
+var pendingEvent=null;
+
+function invalidatePreview(){
+  pendingEvent=null;
+  document.getElementById('preview-card').style.display='none';
+  document.getElementById('confirm-btn').style.display='none';
+  document.getElementById('add-btn').style.display='';
+}
+
+function renderPreview(evt){
+  var r=evt.rating;
+  var rc=document.getElementById('preview-rating');
+  if(r){
+    rc.style.background=r.bg;rc.style.color=r.color;
+    rc.innerHTML='<span style="font-size:20px;">'+r.emoji+'</span><div><div style="font-weight:600;">'+r.label+'</div><div style="font-size:12px;font-weight:400;">'+r.reason+'</div></div>';
+  } else {
+    rc.style.background='';rc.style.color='';rc.innerHTML='';
+  }
+  document.getElementById('pv-total').textContent=evt.co2.total.toFixed(1);
+  document.getElementById('pv-per-att').textContent=evt.perAtt.toFixed(2);
+  document.getElementById('pv-travel').textContent=evt.co2.travel.toFixed(1);
+  document.getElementById('pv-energy').textContent=evt.co2.energy.toFixed(1);
+  document.getElementById('pv-catering').textContent=evt.co2.catering.toFixed(1);
+  document.getElementById('pv-waste').textContent=evt.co2.waste.toFixed(1);
+  document.getElementById('pv-materials').textContent=evt.co2.materials.toFixed(1);
+  document.getElementById('preview-card').style.display='';
+  document.getElementById('add-btn').style.display='none';
+  document.getElementById('confirm-btn').style.display='';
+  document.getElementById('preview-card').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function calculateEvent(){
   var name=document.getElementById('ev-name').value.trim();
   var att=v('ev-att');
   var warn=document.getElementById('add-warn');
@@ -717,14 +768,21 @@ function addEvent(){
     submitterName:gv('sub-name'),submitterEmail:gv('sub-email'),
     co2:co2
   };
+  pendingEvent=evt;
+  renderPreview(evt);
+}
+
+function confirmSubmitEvent(){
+  if(!pendingEvent) return;
+  var evt=pendingEvent;
   events.push(evt);
   renderList();renderMetrics();renderBars();
   saveEventToBackend(evt);
 }
 
 async function saveEventToBackend(evt){
-  var btn=document.getElementById('add-btn');
-  btn.disabled=true;btn.textContent='Saving…';
+  var btn=document.getElementById('confirm-btn');
+  btn.disabled=true;btn.textContent='Submitting…';
 
   // Upload CSV to Blob if one was provided
   var csvUrl=null,csvUploadFailed=false;
@@ -778,17 +836,18 @@ async function saveEventToBackend(evt){
       if(csvUploadFailed){showToast('Event submitted successfully, but CSV upload failed — please re-send the CSV to the team.','err');}
       else{showToast('Event submitted successfully ✓');}
       loadLiveStats();
+      invalidatePreview();
     }
     else{
       var errText=await res.text();
       var errDetail='';
       try{errDetail=JSON.parse(errText).detail||JSON.parse(errText).error||errText;}catch(x){errDetail=errText;}
-      showToast('Save failed: '+errDetail,'err');
+      showToast('Submit failed: '+errDetail,'err');
     }
   }catch(e){
-    showToast('Save failed — could not reach server: '+e.message,'err');
+    showToast('Submit failed — could not reach server: '+e.message,'err');
   }finally{
-    btn.disabled=false;btn.textContent='🌿 Log this event';
+    btn.disabled=false;btn.textContent='✅ Confirm & submit event';
   }
 }
 
