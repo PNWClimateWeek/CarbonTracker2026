@@ -438,7 +438,6 @@
 
   <div class="card" id="preview-card" style="display:none;margin-bottom:2rem;">
     <div class="card-label">Review before you submit</div>
-    <div id="preview-rating" style="display:flex;align-items:center;gap:10px;padding:.75rem 1rem;border-radius:var(--radius-md);margin-bottom:1rem;"></div>
     <div class="metrics" style="margin-bottom:0;">
       <div class="metric"><div class="metric-label">Total CO2e</div><div class="metric-value" id="pv-total">0</div><div class="metric-unit">kg for this event</div></div>
       <div class="metric"><div class="metric-label">Per attendee</div><div class="metric-value" id="pv-per-att">0</div><div class="metric-unit">kg CO2e / person</div></div>
@@ -713,14 +712,10 @@ function invalidatePreview(){
 }
 
 function renderPreview(evt){
-  var r=evt.rating;
-  var rc=document.getElementById('preview-rating');
-  if(r){
-    rc.style.background=r.bg;rc.style.color=r.color;
-    rc.innerHTML='<span style="font-size:20px;">'+r.emoji+'</span><div><div style="font-weight:600;">'+r.label+'</div><div style="font-size:12px;font-weight:400;">'+r.reason+'</div></div>';
-  } else {
-    rc.style.background='';rc.style.color='';rc.innerHTML='';
-  }
+  // Rating (evt.rating) is computed and saved for the internal dashboard only —
+  // never shown here. Removed from this preview 2026-07-15: showing a public
+  // "Needs improvement"-style verdict risks discouraging organizers from
+  // submitting at all. Numbers only, no judgment.
   document.getElementById('pv-total').textContent=evt.co2.total.toFixed(1);
   document.getElementById('pv-per-att').textContent=evt.perAtt.toFixed(2);
   document.getElementById('pv-travel').textContent=evt.co2.travel.toFixed(1);
@@ -1154,11 +1149,15 @@ async function processPendingCSV(){
         ?Math.round(longDists.reduce(function(a,b){return a+b;},0)/longDists.length)
         :null;
       csvTravelPerPerson=csvRespCount>0?(csvLongCO2+csvLocCO2)/csvRespCount:null;
-      csvCheckedInCount=hasCheckinData?csvCheckedInTotal:null;
-      if(csvCheckedInCount) document.getElementById('ev-att').value=csvCheckedInCount;
+      var totalRegistrations=rows.length-1;
+      // No real check-in data (blank column, or none at all): assume 60% of registrations attended
+      // rather than falling back to the "Total attendees" field or defaulting to 1.
+      csvCheckedInCount=hasCheckinData?csvCheckedInTotal:Math.round(totalRegistrations*0.6);
+      document.getElementById('ev-att').value=csvCheckedInCount;
 
       var parts=[];
-      if(csvCheckedInCount) parts.push(csvCheckedInCount+' checked in');
+      if(hasCheckinData) parts.push(csvCheckedInCount+' checked in');
+      else parts.push(csvCheckedInCount+' assumed attended (60% of '+totalRegistrations+' registered — no check-in data)');
       if(longTotal>0) parts.push(longTotal+' long-distance responses');
       if(localTotal>0) parts.push(localTotal+' local responses');
       if(overrideCount>0) parts.push(overrideCount+' corrected to local (<30 km)');

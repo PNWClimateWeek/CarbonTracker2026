@@ -577,10 +577,14 @@ function processEditCSV(){
       var avgKm=longDists.length>0?Math.round(longDists.reduce(function(a,b){return a+b;},0)/longDists.length):null;
       if(avgKm) document.getElementById('e-long-km').value=avgKm;
       editCsvTravelPerPerson=csvRespCnt>0?(csvLongCO2e+csvLocCO2e)/csvRespCnt:null;
-      editCsvCheckedInCount=hasCheckinData?csvCheckedInTotal:null;
+      var editTotalRegistrations=rows.length-1;
+      // No real check-in data: assume 60% of registrations attended rather than
+      // falling back to the saved total_attendees value or defaulting to 1.
+      editCsvCheckedInCount=hasCheckinData?csvCheckedInTotal:Math.round(editTotalRegistrations*0.6);
       recalcEdit();
       var parts=[];
-      if(editCsvCheckedInCount) parts.push(editCsvCheckedInCount+' checked in');
+      if(hasCheckinData) parts.push(editCsvCheckedInCount+' checked in');
+      else parts.push(editCsvCheckedInCount+' assumed attended (60% of '+editTotalRegistrations+' registered — no check-in data)');
       if(longTotal>0) parts.push(longTotal+' long-distance responses');
       if(localTotal>0) parts.push(localTotal+' local responses');
       if(overrideCount>0) parts.push(overrideCount+' corrected to local (<30 km)');
