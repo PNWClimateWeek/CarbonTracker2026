@@ -441,7 +441,8 @@
     <div class="metrics" style="margin-bottom:0;">
       <div class="metric"><div class="metric-label">Total CO2e</div><div class="metric-value" id="pv-total">0</div><div class="metric-unit">kg for this event</div></div>
       <div class="metric"><div class="metric-label">Per attendee</div><div class="metric-value" id="pv-per-att">0</div><div class="metric-unit">kg CO2e / person</div></div>
-      <div class="metric"><div class="metric-label">Travel</div><div class="metric-value" id="pv-travel">0</div><div class="metric-unit">kg CO2e</div></div>
+      <div class="metric"><div class="metric-label">Long-distance travel</div><div class="metric-value" id="pv-travel-long">0</div><div class="metric-unit">kg CO2e</div></div>
+      <div class="metric"><div class="metric-label">Local travel</div><div class="metric-value" id="pv-travel-local">0</div><div class="metric-unit">kg CO2e</div></div>
       <div class="metric"><div class="metric-label">Energy</div><div class="metric-value" id="pv-energy">0</div><div class="metric-unit">kg CO2e</div></div>
       <div class="metric"><div class="metric-label">Catering</div><div class="metric-value" id="pv-catering">0</div><div class="metric-unit">kg CO2e</div></div>
       <div class="metric"><div class="metric-label">Waste</div><div class="metric-value" id="pv-waste">0</div><div class="metric-unit">kg CO2e</div></div>
@@ -608,28 +609,32 @@ function calcWaste(){
 
 function calcCO2(){
   var att=v('ev-att')||1;
-  var tCO2;
+  var tCO2Long,tCO2Local;
   if(csvTravelPerPerson!==null){
-    tCO2=csvTravelPerPerson*(csvCheckedInCount||att);
+    var scale=csvCheckedInCount||att;
+    tCO2Long=(csvLongPerPerson||0)*scale;
+    tCO2Local=(csvLocPerPerson||0)*scale;
   } else {
     var localDist=8;
     var longDist=csvLongDistKm||50;
     var flightDist=csvLongDistKm||50;
     var tf=getTransitFactors();
-    tCO2=0;
-    tCO2+=att*(v('t-bus')/100)*longDist*2*0.044;
-    tCO2+=att*(v('t-train')/100)*longDist*2*tf.train;
-    tCO2+=att*(v('t-car-long')/100)*longDist*2*0.191;
-    tCO2+=att*(v('t-flight')/100)*flightDist*2*0.255;
-    tCO2+=att*(v('t-transit')/100)*localDist*2*tf.transit;
-    tCO2+=att*(v('t-car-local')/100)*localDist*2*0.191;
+    tCO2Long=0;
+    tCO2Long+=att*(v('t-bus')/100)*longDist*2*0.044;
+    tCO2Long+=att*(v('t-train')/100)*longDist*2*tf.train;
+    tCO2Long+=att*(v('t-car-long')/100)*longDist*2*0.191;
+    tCO2Long+=att*(v('t-flight')/100)*flightDist*2*0.255;
+    tCO2Local=0;
+    tCO2Local+=att*(v('t-transit')/100)*localDist*2*tf.transit;
+    tCO2Local+=att*(v('t-car-local')/100)*localDist*2*0.191;
   }
+  var tCO2=tCO2Long+tCO2Local;
   var eCO2=(v('en-sqft')*2/1000)*v('en-hrs')*parseFloat(sv('en-src'));
   var catEF={rescue:0.1,vegan:0.5,vegetarian:1.5,mixed:2.5,meatheavy:5.5};
   var cCO2=sv('cat-yn')==='yes'?v('cat-meals')*(catEF[sv('cat-type')]||0):0;
   var wCO2=calcWaste();
   var mCO2=(v('mat-pages')*0.005);
-  return{travel:tCO2,energy:eCO2,catering:cCO2,waste:wCO2,materials:mCO2,total:tCO2+eCO2+cCO2+wCO2+mCO2};
+  return{travel:tCO2,travelLong:tCO2Long,travelLocal:tCO2Local,energy:eCO2,catering:cCO2,waste:wCO2,materials:mCO2,total:tCO2+eCO2+cCO2+wCO2+mCO2};
 }
 
 function updateRatingPreview(){}
@@ -718,7 +723,8 @@ function renderPreview(evt){
   // submitting at all. Numbers only, no judgment.
   document.getElementById('pv-total').textContent=evt.co2.total.toFixed(1);
   document.getElementById('pv-per-att').textContent=evt.perAtt.toFixed(2);
-  document.getElementById('pv-travel').textContent=evt.co2.travel.toFixed(1);
+  document.getElementById('pv-travel-long').textContent=evt.co2.travelLong.toFixed(1);
+  document.getElementById('pv-travel-local').textContent=evt.co2.travelLocal.toFixed(1);
   document.getElementById('pv-energy').textContent=evt.co2.energy.toFixed(1);
   document.getElementById('pv-catering').textContent=evt.co2.catering.toFixed(1);
   document.getElementById('pv-waste').textContent=evt.co2.waste.toFixed(1);
@@ -918,6 +924,8 @@ async function importFromLuma(){
 // ── CSV travel import ────────────────────────────────────────────────
 var csvLongDistKm = null;
 var csvTravelPerPerson = null;
+var csvLongPerPerson = null;
+var csvLocPerPerson = null;
 var csvCheckedInCount = null;
 var pendingCsvContent = null;
 var pendingCsvFilename = null;
@@ -1149,6 +1157,8 @@ async function processPendingCSV(){
         ?Math.round(longDists.reduce(function(a,b){return a+b;},0)/longDists.length)
         :null;
       csvTravelPerPerson=csvRespCount>0?(csvLongCO2+csvLocCO2)/csvRespCount:null;
+      csvLongPerPerson=csvRespCount>0?csvLongCO2/csvRespCount:null;
+      csvLocPerPerson=csvRespCount>0?csvLocCO2/csvRespCount:null;
       var totalRegistrations=rows.length-1;
       // No real check-in data (blank column, or none at all): assume 60% of registrations attended
       // rather than falling back to the "Total attendees" field or defaulting to 1.
