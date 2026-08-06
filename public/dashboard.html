@@ -232,6 +232,21 @@ function render(d){
   html+='<div class="card"><div class="card-title">Ratings distribution</div>'+
     RATS.map(function(r){return bar(r,rm[r]||0,maxR,RCOLS[r],' events');}).join('')+'</div>';
 
+  // Qualitative feedback — events with at least one subjective questionnaire answer filled in
+  var qualEvents=(d.events||[]).filter(function(e){return e.sustainability_initiatives||e.what_worked_well||e.what_to_improve;});
+  if(qualEvents.length){
+    var qualRows=qualEvents.map(function(e){
+      return '<tr>'+
+        '<td><strong>'+(e.event_name||'—')+'</strong></td>'+
+        '<td style="white-space:normal;">'+(e.sustainability_initiatives||'—')+'</td>'+
+        '<td style="white-space:normal;">'+(e.what_worked_well||'—')+'</td>'+
+        '<td style="white-space:normal;">'+(e.what_to_improve||'—')+'</td>'+
+      '</tr>';
+    }).join('');
+    html+='<div class="card"><div class="card-title">Qualitative feedback ('+qualEvents.length+' of '+(d.events||[]).length+' events)</div>'+
+      '<div style="overflow:auto;"><table><thead><tr><th>Event</th><th>Initiatives taken</th><th>Wins</th><th>Barriers</th></tr></thead><tbody>'+qualRows+'</tbody></table></div></div>';
+  }
+
   // Travel distance section — events with Luma data
   var lumaEvents=(d.events||[]).filter(function(e){return e.luma_event_id;});
   if(lumaEvents.length){
@@ -635,7 +650,7 @@ async function saveEdit(){
 
 function exportCSV(){
   if(!window._data) return;
-  var cols=['event_name','event_date','city','organizer','total_attendees','venue_name','per_attendee_co2e_kg','total_co2e_kg','travel_co2_kg','energy_co2_kg','catering_co2_kg','waste_co2_kg','materials_co2_kg','rating','submitter_name','submitter_email','what_worked_well','what_to_improve','created_at'];
+  var cols=['event_name','event_date','city','organizer','total_attendees','venue_name','per_attendee_co2e_kg','total_co2e_kg','travel_co2_kg','energy_co2_kg','catering_co2_kg','waste_co2_kg','materials_co2_kg','rating','submitter_name','submitter_email','what_worked_well','what_to_improve','sustainability_initiatives','created_at'];
   var csv=cols.join(',')+'\n'+window._data.events.map(function(e){
     return cols.map(function(c){return '"'+String(e[c]||'').replace(/"/g,'""')+'"';}).join(',');
   }).join('\n');
